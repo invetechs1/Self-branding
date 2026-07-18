@@ -1,0 +1,8 @@
+# أسرار — لا تُرفع أبداً
+automation/config.yml
+*.env
+.env*
+
+__pycache__/
+*.pyc
+.DS_Store

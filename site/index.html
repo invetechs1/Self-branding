@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- عدّل كل قيمة بين {{ }} من profile/facts.yml — لا تنشر الموقع قبل ذلك -->
+  <title>{{الاسم}} — استشاري إدارة مشاريع وتخطيط استراتيجي</title>
+  <meta name="description" content="{{الاسم}}، {{اللقب المهني الحقيقي}}. أشارك خبرتي في إدارة المشاريع والتخطيط الاستراتيجي وبناء الأعمال — بالأرقام ومن التجربة.">
+  <link rel="canonical" href="https://{{الدومين}}/">
+
+  <!-- Open Graph لمشاركات السوشيال ميديا -->
+  <meta property="og:type" content="profile">
+  <meta property="og:title" content="{{الاسم}} — إدارة مشاريع وريادة أعمال">
+  <meta property="og:description" content="محتوى عملي في إدارة المشاريع والتخطيط الاستراتيجي وبناء الشركات.">
+  <meta property="og:image" content="https://{{الدومين}}/photo.jpg">
+
+  <!-- Schema.org Person — يعرّف Google عليك ككيان ويربط حساباتك ببعضها -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": "{{الاسم بالعربية}}",
+    "alternateName": "{{Name in English}}",
+    "jobTitle": "{{اللقب المهني الحقيقي}}",
+    "description": "{{وصف من جملتين مبني على facts.yml}}",
+    "url": "https://{{الدومين}}/",
+    "image": "https://{{الدومين}}/photo.jpg",
+    "knowsAbout": ["إدارة المشاريع", "التخطيط الاستراتيجي", "ريادة الأعمال", "إدارة الشركات"],
+    "sameAs": [
+      "https://x.com/{{حساب_تويتر}}",
+      "https://www.instagram.com/{{حساب_انستقرام}}",
+      "https://www.tiktok.com/@{{حساب_تيكتوك}}",
+      "https://www.linkedin.com/in/{{حساب_لينكدإن}}"
+    ]
+  }
+  </script>
+
+  <style>
+    :root { --ink:#1a1a2e; --accent:#0f6b5c; --bg:#fafaf7; --muted:#5a5a6e; }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:"Segoe UI",Tahoma,Arial,sans-serif; background:var(--bg); color:var(--ink); line-height:1.8; }
+    .wrap { max-width:820px; margin:0 auto; padding:2rem 1.25rem; }
+    header.hero { text-align:center; padding:4rem 0 3rem; }
+    .hero img { width:140px; height:140px; border-radius:50%; object-fit:cover; border:3px solid var(--accent); }
+    h1 { font-size:2rem; margin:1rem 0 .25rem; }
+    .tagline { color:var(--accent); font-weight:600; }
+    .bio { color:var(--muted); max-width:600px; margin:1rem auto; }
+    .socials a { display:inline-block; margin:0 .4rem; color:var(--accent); text-decoration:none; font-weight:600; }
+    section { margin:3rem 0; }
+    h2 { font-size:1.4rem; border-inline-start:4px solid var(--accent); padding-inline-start:.75rem; margin-bottom:1rem; }
+    .proof li { margin-bottom:.6rem; }
+    .articles article { padding:1rem 0; border-bottom:1px solid #e5e5df; }
+    .articles a { color:var(--ink); text-decoration:none; font-weight:600; }
+    .cta { background:var(--ink); color:#fff; text-align:center; padding:2.5rem 1.5rem; border-radius:12px; }
+    .cta a { display:inline-block; margin-top:1rem; background:var(--accent); color:#fff; padding:.7rem 2rem; border-radius:8px; text-decoration:none; font-weight:700; }
+    footer { text-align:center; color:var(--muted); padding:2rem 0; font-size:.9rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <header class="hero">
+      <img src="photo.jpg" alt="{{الاسم}}">
+      <h1>{{الاسم}}</h1>
+      <p class="tagline">{{اللقب المهني الحقيقي — كما في facts.yml}}</p>
+      <p class="bio">{{نبذة من 2–3 جمل: من أنت، ماذا تفعل الآن، وما القيمة التي تقدمها لجمهورك. حقيقية وقابلة للإثبات.}}</p>
+      <nav class="socials">
+        <a href="https://x.com/{{حساب}}">𝕏 تويتر</a>
+        <a href="https://instagram.com/{{حساب}}">انستقرام</a>
+        <a href="https://tiktok.com/@{{حساب}}">تيك توك</a>
+        <a href="https://linkedin.com/in/{{حساب}}">لينكدإن</a>
+      </nav>
+    </header>
+
+    <section>
+      <h2>خبرتي</h2>
+      <ul class="proof">
+        <!-- من experience و ventures في facts.yml — كل بند حقيقي وقابل للتحقق -->
+        <li>{{إنجاز/خبرة 1}}</li>
+        <li>{{إنجاز/خبرة 2}}</li>
+        <li>{{إنجاز/خبرة 3}}</li>
+      </ul>
+    </section>
+
+    <section class="articles">
+      <h2>أحدث المقالات</h2>
+      <!-- تُضاف تلقائياً من site/articles/ — كل مقال صفحة SEO جديدة -->
+      <article><a href="articles/example.html">{{عنوان المقال}}</a><p>{{مقتطف}}</p></article>
+    </section>
+
+    <section class="cta">
+      <h2 style="border:none;padding:0">هل تبني مشروعاً أو تدير فريقاً؟</h2>
+      <p>أشارك أدوات وخلاصات عملية أسبوعياً.</p>
+      <a href="https://x.com/{{حساب}}">تابعني على X</a>
+    </section>
+
+    <footer>© {{السنة}} {{الاسم}} — جميع الحقوق محفوظة</footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,49 @@
+# نشر مجدول — يعمل كل ساعة وينشر ما حان موعده من طابور المحتوى المعتمد.
+# المفاتيح تُخزن في GitHub Secrets (Settings → Secrets and variables → Actions)
+# ولا تُكتب في أي ملف داخل المستودع.
+
+name: publish-approved-posts
+
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r automation/requirements.txt
+
+      - name: Build config from secrets
+        run: |
+          cat > automation/config.yml <<EOF
+          anthropic: {api_key: "${{ secrets.ANTHROPIC_API_KEY }}", model: "claude-sonnet-5"}
+          twitter:
+            api_key: "${{ secrets.X_API_KEY }}"
+            api_secret: "${{ secrets.X_API_SECRET }}"
+            access_token: "${{ secrets.X_ACCESS_TOKEN }}"
+            access_token_secret: "${{ secrets.X_ACCESS_TOKEN_SECRET }}"
+          linkedin:
+            access_token: "${{ secrets.LINKEDIN_ACCESS_TOKEN }}"
+            person_urn: "${{ secrets.LINKEDIN_PERSON_URN }}"
+          settings: {timezone: "Asia/Riyadh", require_approval: true}
+          EOF
+
+      - run: python automation/publish.py
+
+      - name: Commit queue status updates
+        run: |
+          git config user.name "brand-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add automation/queue/queue.csv site/articles/ || true
+          git diff --cached --quiet || git commit -m "chore: update publish queue status"
+          git push
