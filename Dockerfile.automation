@@ -1,0 +1,13 @@
+# يشغّل سكربتات التوليد والنشر (automation/generate_posts.py, publish.py)
+# يحتاج automation/config.yml (أسرار الـ API) عند التشغيل الفعلي — انظر deployment.md
+FROM python:3.12-slim
+
+WORKDIR /app
+
+COPY automation/requirements.txt automation/requirements.txt
+RUN pip install --no-cache-dir -r automation/requirements.txt
+
+COPY . .
+
+ENTRYPOINT ["python"]
+CMD ["automation/publish.py", "--dry-run"]

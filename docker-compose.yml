@@ -1,0 +1,17 @@
+services:
+  site:
+    build:
+      context: .
+      dockerfile: Dockerfile.site
+    image: self-branding-site:latest
+    ports:
+      - "8080:80"
+
+  automation:
+    build:
+      context: .
+      dockerfile: Dockerfile.automation
+    image: self-branding-automation:latest
+    volumes:
+      - ./automation/config.yml:/app/automation/config.yml:ro
+    # مثال: docker compose run --rm automation automation/generate_posts.py --week

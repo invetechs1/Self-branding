@@ -6,3 +6,6 @@ automation/config.yml
 __pycache__/
 *.pyc
 .DS_Store
+
+# صور Docker المصدَّرة — كبيرة الحجم، لا تُرفع إلى git
+*.tar

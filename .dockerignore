@@ -1,0 +1,8 @@
+.git
+.github
+__pycache__
+*.pyc
+automation/config.yml
+automation/queue
+.DS_Store
+*.tar

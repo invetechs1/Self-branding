@@ -1,0 +1,6 @@
+# يشغّل الموقع الشخصي الثابت (site/) عبر nginx
+FROM nginx:alpine
+
+COPY site/ /usr/share/nginx/html/
+
+EXPOSE 80
