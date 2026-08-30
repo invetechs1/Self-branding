@@ -1,6 +1,5 @@
-# نشر مجدول — يعمل كل ساعة وينشر ما حان موعده من طابور المحتوى المعتمد.
-# المفاتيح تُخزن في GitHub Secrets (Settings → Secrets and variables → Actions)
-# ولا تُكتب في أي ملف داخل المستودع.
+# النشر المجدول — كل ساعة، ينشر ما حان موعده من الطابور وفق بوابة الاعتماد (§37).
+# المفاتيح في GitHub Secrets (Settings → Secrets and variables → Actions) ولا تُكتب في المستودع.
 
 name: publish-approved-posts
 
@@ -35,7 +34,7 @@ jobs:
           linkedin:
             access_token: "${{ secrets.LINKEDIN_ACCESS_TOKEN }}"
             person_urn: "${{ secrets.LINKEDIN_PERSON_URN }}"
-          settings: {timezone: "Asia/Riyadh", require_approval: true}
+          settings: {timezone: "Asia/Riyadh", require_approval: true, auto_publish_green: false}
           EOF
 
       - run: python automation/publish.py

@@ -1,0 +1,330 @@
+# ملف الشخصية الرقمية — النسخة التي يقرؤها النظام (Machine-Readable Persona)
+# ─────────────────────────────────────────────────────────────────────────
+# المرجع البشري الكامل: profile/persona-spec.md
+# الحقائق والإنجازات الشخصية: profile/facts.yml  (هذا الملف لا يحتوي وقائع شخصية)
+# كل الأوزان هنا قابلة للتعديل — محرك التعلّم يعدّلها في automation/learning/weights.yml
+
+version: "1.0"
+
+identity:
+  name_en: "Yahya Hussain Al Salamah"
+  name_ar: "يحيى حسين السلامة"
+  nationality: "Saudi"
+  professional_identity: "Entrepreneur | Engineer | Business Builder | Technology Founder | Real Estate Developer"
+  positioning: >-
+    رائد أعمال يعرف الصناعات التقليدية من الداخل، ويبني تقنية تحوّلها.
+    التموضع عند تقاطع: الهندسة × الأعمال × التقنية × الذكاء الاصطناعي × العقار.
+  not_positioned_as: ["مقاول فقط", "رائد أعمال تقني فقط"]
+  core_message: >-
+    Yahya Hussain Al Salamah is a Saudi entrepreneur and engineer building businesses and
+    technology at the intersection of engineering, artificial intelligence, real estate,
+    and business transformation.
+
+# ── منهجية بناء المنتجات (تُستخدم كزاوية سردية متكررة) ──
+product_method: ["Problem", "Operational Experience", "System", "Automation", "AI", "Scalable Product"]
+
+# ── خريطة الاهتمامات (Interest Graph) — الأساس الأول لترتيب الأخبار ──
+interest_graph:
+  tier_weights: {tier_1: 1.0, tier_2: 0.7, tier_3: 0.4}
+  tier_1:
+    - Artificial Intelligence
+    - Entrepreneurship
+    - Saudi Arabia Economy
+    - Construction Technology
+    - Real Estate Development
+    - Business Technology
+    - Enterprise AI
+    - Automation
+    - AI Agents
+    - ERP
+  tier_2:
+    - Project Management
+    - Engineering
+    - BIM
+    - Digital Twins
+    - PropTech
+    - ConTech
+    - SaaS
+    - Robotics
+    - Business Intelligence
+    - Finance
+    - Investment
+    - Logistics Technology
+  tier_3:
+    - Leadership
+    - Productivity
+    - Management
+    - Startups
+    - Venture Capital
+    - Private Equity
+    - IPO
+    - Infrastructure
+    - Smart Cities
+    - Energy
+    - Data Centers
+    - Manufacturing
+    - Future of Work
+
+# ── مرادفات خريطة الاهتمامات — لأن الأخبار تكتب "AI" لا "Artificial Intelligence" ──
+interest_aliases:
+  Artificial Intelligence: ["ai", "a.i.", "artificial intelligence", "machine learning", "deep learning", "llm", "genai", "generative ai", "ذكاء اصطناعي", "تعلم آلي"]
+  AI Agents: ["ai agent", "agentic", "autonomous agent", "copilot", "وكيل ذكي", "وكلاء أذكياء"]
+  Enterprise AI: ["enterprise ai", "ai for business", "business ai", "ai adoption", "ذكاء اصطناعي مؤسسي"]
+  Construction Technology: ["contech", "construction technology", "construction tech", "construction ai", "jobsite technology", "تقنية الإنشاءات", "تقنية البناء"]
+  Real Estate Development: ["real estate development", "residential development", "developer", "housing project", "تطوير عقاري"]
+  Business Technology: ["enterprise software", "business software", "digital transformation", "تحول رقمي"]
+  Saudi Arabia Economy: ["saudi economy", "saudi arabia", "vision 2030", "pif", "non-oil", "الاقتصاد السعودي", "رؤية 2030"]
+  Entrepreneurship: ["entrepreneur", "startup", "founder", "ريادة أعمال", "شركة ناشئة"]
+  Automation: ["automation", "automated", "workflow automation", "rpa", "أتمتة"]
+  ERP: ["erp", "enterprise resource planning", "sap", "oracle fusion", "أنظمة تخطيط الموارد"]
+  Project Management: ["project management", "project controls", "pmo", "schedule delay", "إدارة مشاريع"]
+  Engineering: ["engineering", "engineer", "design review", "هندسة", "مهندس"]
+  BIM: ["bim", "building information modeling", "ifc", "revit"]
+  Digital Twins: ["digital twin", "توأم رقمي"]
+  PropTech: ["proptech", "property technology", "real estate tech", "تقنية عقارية"]
+  ConTech: ["contech", "construction technology", "construction tech"]
+  SaaS: ["saas", "subscription software", "software platform"]
+  Robotics: ["robot", "robotics", "autonomous machine", "روبوت"]
+  Business Intelligence: ["business intelligence", "analytics dashboard", "data platform", "ذكاء الأعمال"]
+  Finance: ["finance", "financial", "cash flow", "cfo", "مالية", "تدفق نقدي"]
+  Investment: ["investment", "investor", "funding", "raises", "استثمار", "تمويل"]
+  Logistics Technology: ["logistics technology", "fleet management", "last-mile", "supply chain tech", "تقنية لوجستية"]
+  Data Centers: ["data center", "data centre", "مركز بيانات"]
+  Smart Cities: ["smart city", "smart cities", "مدن ذكية"]
+  Infrastructure: ["infrastructure", "بنية تحتية"]
+  Future of Work: ["future of work", "remote work", "workforce transformation", "مستقبل العمل"]
+  Venture Capital: ["venture capital", "vc firm", "series a", "series b", "رأس مال جريء"]
+  Private Equity: ["private equity", "buyout", "ملكية خاصة"]
+  IPO: ["ipo", "public offering", "طرح عام"]
+  Startups: ["startup", "startups", "شركات ناشئة"]
+  Leadership: ["leadership", "ceo", "قيادة"]
+  Productivity: ["productivity", "efficiency gain", "إنتاجية"]
+  Management: ["management", "operations", "إدارة"]
+  Energy: ["energy", "renewable", "power grid", "طاقة"]
+  Manufacturing: ["manufacturing", "factory", "industrial production", "تصنيع"]
+
+# ── الأولوية الجغرافية — تضرب في مكوّن Saudi/GCC Relevance ──
+geography:
+  priority: {saudi_arabia: 1.0, gcc: 0.85, united_states: 0.6, china: 0.55, europe: 0.5, global: 0.4}
+  terms:
+    saudi_arabia: ["saudi", "riyadh", "jeddah", "neom", "vision 2030", "pif", "ksa", "السعودية", "الرياض", "جدة", "نيوم", "رؤية 2030", "صندوق الاستثمارات"]
+    gcc: ["gcc", "uae", "dubai", "abu dhabi", "qatar", "kuwait", "bahrain", "oman", "الخليج", "الإمارات", "دبي", "قطر"]
+    united_states: ["united states", " u.s.", "america", "silicon valley", "أمريكا"]
+    china: ["china", "chinese", "shenzhen", "الصين"]
+    europe: ["europe", "eu ", "germany", "france", "uk ", "london", "أوروبا"]
+
+# ── قائمة المتابعة السعودية (أعلى أولوية) ──
+saudi_watchlist:
+  - Vision 2030
+  - Public Investment Fund
+  - Saudi giga-projects
+  - Riyadh development
+  - Saudi construction market
+  - Saudi real estate
+  - Digital transformation
+  - AI investment
+  - Data centers
+  - Smart cities
+  - Infrastructure
+  - Tourism
+  - Logistics
+  - Industrial development
+  - Privatization
+  - Capital markets
+  - Government technology initiatives
+
+# ── قطاعات المراقبة المؤسسية (ديناميكية — لا تُقفل على أسماء ثابتة) ──
+company_watch_sectors:
+  [Artificial Intelligence, Cloud Computing, Enterprise Software, Construction Technology,
+   Real Estate, Engineering, Robotics, Infrastructure, Logistics, Investment]
+
+# ── ربط الأخبار بأعمال يحيى (Business Relevance) ──
+business_domains:
+  contracting:
+    company: "Azoom United Contracting"
+    keywords: ["contractor", "civil works", "infrastructure", "concrete", "asphalt", "subcontractor", "cost control", "site productivity", "مقاولات", "خرسانة", "بنية تحتية", "مقاول باطن"]
+  engineering_consultancy:
+    company: "Alarrab Engineering Consultancy"
+    keywords: ["engineering design", "design review", "pmo", "supervision", "technical review", "building code", "استشارات هندسية", "مراجعة تصاميم", "إشراف"]
+  logistics:
+    keywords: ["fleet", "last-mile", "delivery", "driver", "warehouse automation", "transportation", "vehicle utilization", "أسطول", "توصيل", "نقل", "مستودعات"]
+  real_estate:
+    keywords: ["real estate", "residential development", "housing demand", "land price", "reit", "mortgage", "proptech", "feasibility", "عقار", "تطوير عقاري", "تمويل عقاري", "أسعار الأراضي"]
+  technology:
+    company: "Bassir Technology"
+    keywords: ["erp", "ai agent", "copilot", "automation", "saas", "business intelligence", "workflow", "llm", "ذكاء اصطناعي", "أتمتة", "أنظمة مؤسسية"]
+  construction_tech:
+    keywords: ["contech", "bim", "digital twin", "reality capture", "laser scanning", "computer vision", "drone inspection", "construction robotics", "quantity takeoff", "ai estimation", "project controls"]
+  finance_ai:
+    product: "AI CFO"
+    keywords: ["cash flow", "profitability", "receivables", "payables", "forecast", "cost overrun", "financial risk", "تدفق نقدي", "ربحية", "مستحقات"]
+
+# ── إشارات الأهمية الاستراتيجية ──
+strategic_signals:
+  high: ["acquisition", "acquires", "raises", "funding round", "series ", "ipo", "regulation", "mandate", "law", "partnership with", "launches", "megaproject", "billion", "استحواذ", "تمويل", "طرح", "تنظيم", "إلزام", "شراكة", "مليار"]
+  medium: ["report", "study", "forecast", "survey", "expands", "pilot", "million", "signs deal",
+           "wins contract", "contract award", "rollout", "standard", "requirement", "adopts",
+           "تقرير", "دراسة", "توقعات", "توسّع", "مليون", "عقد", "توقيع", "اعتماد"]
+
+# ── قيمة الخبر للجمهور (مهندسون، مقاولون، مؤسسون، مستثمرون) ──
+audience_value_signals:
+  ["how ", "why ", "case study", "results", "cost", "productivity", "roi", "savings", "adoption",
+   "lesson", "framework", "benchmark", "efficiency", "impact", "mandate", "requirement", "margin",
+   "delay", "overrun", "كيف", "لماذا", "دراسة حالة", "تكلفة", "إنتاجية", "عائد", "توفير", "أثر", "كفاءة", "تأخر"]
+
+# ── معادلة ترتيب الأخبار (§20 من المواصفة) — المجموع = 100 ──
+relevance_weights:
+  personal_interest: 25
+  business_relevance: 20
+  saudi_gcc_relevance: 15
+  strategic_importance: 15
+  audience_value: 10
+  freshness: 10
+  source_credibility: 5
+
+thresholds:
+  pipeline_entry: 55        # أقل درجة ملاءمة تدخل خط إنتاج المحتوى
+  deep_dive: 78             # درجة تستحق تحليلاً معمقاً (مقال/ثريد)
+  duplicate_similarity: 0.55 # عتبة تشابه العناوين لاعتبارها قصة واحدة
+  min_credibility_for_facts: 80  # ادعاء رقمي/مالي يتطلب مصدراً بهذه المصداقية
+  fact_confidence_autopublish: 0.8   # أقل من ذلك = مراجعة (أصفر)
+  fact_confidence_red: 0.6           # أقل من ذلك = اعتماد يدوي إلزامي (أحمر)
+  freshness_half_life_hours: 24
+  freshness_max_age_hours: 168
+
+# ── مصداقية المصادر (§19) ──
+source_credibility:
+  official_government: 100
+  official_company: 95
+  major_international_publication: 90
+  industry_publication: 80
+  professional_analyst: 70
+  social_media: 55
+  unknown_website: 20
+  unverified_account: 10
+
+# ── أعمدة المحتوى ومزيجه (§25، §26) ──
+content_pillars:
+  ai_technology:        {label_ar: "الذكاء الاصطناعي والتقنية", share: 0.30}
+  entrepreneurship:     {label_ar: "ريادة الأعمال", share: 0.15}
+  construction_engineering: {label_ar: "الإنشاءات والهندسة", share: 0.15}
+  real_estate:          {label_ar: "التطوير العقاري", share: 0.10}
+  saudi_economy:        {label_ar: "الاقتصاد السعودي ورؤية 2030", share: 0.10}
+  business_management:  {label_ar: "إدارة الأعمال", share: 0.10}
+  investment:           {label_ar: "الاستثمار", share: 0.05}
+  leadership_lessons:   {label_ar: "القيادة والدروس الشخصية", share: 0.05}
+# عمودان إضافيان يُستخدمان عند توفر مادتهما (يُوزَّعان ضمن الحصص أعلاه):
+#   bassir_product_building (Building in Public) ضمن ai_technology
+#   future_trends ضمن ai_technology / saudi_economy
+
+content_types:
+  news_insight:        "تطور حديث + تفسير يحيى وأثره على السوق السعودي"
+  personal_observation: "درس من خبرة تشغيلية (من facts.yml فقط)"
+  educational:         "شرح مفهوم بلغة بسيطة"
+  contrarian_question: "تحدي السائد بلا افتعال جدل"
+  future_prediction:   "توقع مستقبلي — يُوسم صراحة كتوقع لا حقيقة"
+  business_lesson:     "درس في التدفق النقدي/التوظيف/العقود/النمو"
+  case_study:          "تحليل شركة أو مشروع أو نموذج عمل"
+  building_in_public:  "كواليس بناء المنتجات دون معلومات سرية"
+
+# ── الصوت واللغة (§28، §29) ──
+voice:
+  traits: [Confident, Curious, Forward-looking, Analytical, Practical, Entrepreneurial, Technology-oriented, Clear]
+  never: ["Corporate PR", "Motivational speaker", "Academic paper", "Generic AI article"]
+  arabic: "عربية مهنية واضحة قريبة من اللغة السعودية/الخليجية — بلا فصحى معقّدة"
+  english: "Clear. Professional. Direct. International."
+  default_language: ar
+
+# ── أدلة المنصات (§30-32) ──
+platforms:
+  linkedin_post:
+    length: "150-500 كلمة"
+    structure: ["افتتاحية قوية", "سياق", "رؤية تحليلية", "الأثر على الأعمال", "خاتمة أو سؤال ذكي"]
+    focus: [thought leadership, business analysis, AI, engineering, entrepreneurship, Saudi transformation, management, real estate]
+  twitter:
+    length: "أقل من 270 حرفاً"
+    style: "أسرع وأحدّ — ملاحظة أو تطور أو توقع. بلا هاشتاقات غير ضرورية."
+  twitter_thread:
+    length: "6-9 تغريدات"
+    style: "فكرة واحدة تتفكك تسلسلياً، كل تغريدة قائمة بذاتها. بلا هاشتاقات غير ضرورية."
+  instagram_carousel:
+    length: "8 شرائح + كابشن"
+    style: "ترجمة الفكرة بصرياً: دروس، اقتباسات، شرح تقني مبسّط، قصص تطوير سعودية."
+  tiktok_script:
+    length: "45 ثانية"
+    style: "خطّاف 3 ثوانٍ ثم المحتوى ثم خاتمة، بلغة محكية."
+  article:
+    length: "900-1200 كلمة"
+    style: "عنوان بصيغة بحث حقيقية، عناوين فرعية، خلاصة قابلة للتطبيق."
+
+# ── طبقة الرؤية (§24) — أسئلة يجيب عنها النظام داخلياً قبل الكتابة ──
+insight_questions:
+  - "ماذا يعني هذا للشركات السعودية؟"
+  - "هل يمكن استخدام هذه التقنية في الإنشاءات؟"
+  - "هل يمكن أن تصبح ميزة داخل بصير؟"
+  - "هل تؤثر على التطوير العقاري؟"
+  - "هل تخفّض تكاليف التشغيل؟"
+  - "هل تحسّن إدارة المشاريع؟"
+  - "هل هناك فرصة عمل هنا؟"
+  - "ماذا يحدث لو أصبحت هذه التقنية سائدة؟"
+
+# ── خريطة قيادة الفكر (§44) — تقاطعات تُعطى وزناً إضافياً ──
+thought_leadership_graph:
+  primary: {intersection: ["AI", "Construction", "Business"], boost: 1.25}
+  secondary:
+    - {intersection: ["AI", "Real Estate"], boost: 1.15}
+    - {intersection: ["Technology", "Project Management"], boost: 1.15}
+    - {intersection: ["Saudi Arabia", "Entrepreneurship"], boost: 1.15}
+    - {intersection: ["ERP", "AI Agents"], boost: 1.15}
+    - {intersection: ["Business Automation", "Traditional Industries"], boost: 1.15}
+
+# ── قواعد السلامة (§33-37) ──
+safety:
+  originality_rule: "SOURCE → UNDERSTAND → VERIFY → ANALYZE → ADD PERSPECTIVE → CREATE ORIGINAL POST — لا نسخ ولا تلخيص حرفي"
+  personal_experience_rule: "يُمنع اختراع تجربة شخصية. غير الموجود في facts.yml يُصاغ: (هذا ما يجب أن تفحصه الشركات في قطاعنا)"
+  opinion_rule: "الرأي غير الموثّق سابقاً يُقدَّم كـ Suggested Opinion ويحتاج اعتماداً"
+  never_expose:
+    - "عقود سرية"
+    - "أسعار العملاء"
+    - "نزاعات داخلية"
+    - "بيانات الموظفين"
+    - "معلومات بنكية"
+    - "معلومات مالية خاصة"
+    - "استراتيجية قانونية"
+    - "مستندات مشاريع سرية"
+    - "شؤون عائلية"
+  approval_levels:
+    green:  "معلومة عامة موثّقة أو محتوى تعليمي — يجوز نشره آلياً وفق الإعدادات"
+    yellow: "رأي أو توقع أو تعليق تجاري — يحتاج مراجعة"
+    red:    "معلومات حساسة/مالية/قانونية/جدلية/شخصية/غير موثّقة — لا نشر آلي إطلاقاً"
+  red_flag_terms:
+    ["revenue", "profit margin", "lawsuit", "legal action", "contract value", "salary", "بنك",
+     "إيرادات", "أرباح", "قضية", "دعوى", "راتب", "سياسة", "political", "دين", "خلاف"]
+  yellow_flag_terms:
+    ["i think", "i believe", "will likely", "prediction", "أتوقع", "برأيي", "أعتقد", "سيصبح", "خلال السنوات القادمة"]
+
+# ── اختبار الجودة قبل النشر (§50) ──
+quality_gate:
+  - "هل هو صحيح؟"
+  - "هل هو حديث؟"
+  - "هل هو ذو صلة؟"
+  - "هل يوجد مصدر موثوق؟"
+  - "هل لدى يحيى إضافة مفيدة؟"
+  - "هل يبدو إنسانياً؟"
+  - "هل يقوّي العلامة الشخصية؟"
+  - "هل يختلف عن ملخصات الأخبار العامة؟"
+  - "هل يتعلم منه مدير تنفيذي أو مهندس أو رائد أعمال أو مستثمر؟"
+
+# ── كلمات البحث (§49) ──
+search_keywords:
+  ["Artificial Intelligence", "AI Agents", "Enterprise AI", "ERP AI", "Construction AI", "ConTech",
+   "BIM", "Digital Twin", "Reality Capture", "Laser Scanning", "Construction Robotics",
+   "Saudi Construction", "Saudi Real Estate", "Riyadh Real Estate", "PropTech", "Saudi Startups",
+   "Saudi Investment", "Vision 2030", "PIF", "Project Management AI", "Logistics AI",
+   "Fleet Technology", "Business Automation", "SaaS", "Future of Work", "Robotics",
+   "Smart Cities", "Infrastructure", "Data Centers"]
+
+# ── المبدأ الحاكم (§53) ──
+governing_principle: >-
+  لا تسأل: "ماذا ننشر اليوم؟" بل: "ماذا حدث في العالم اليوم ويجب أن يفهمه يحيى،
+  وما الزاوية الفريدة التي يمكنه إضافتها، وكيف تقوّي هذه الرؤية سمعته وتصنع قيمة أعمال طويلة المدى؟"

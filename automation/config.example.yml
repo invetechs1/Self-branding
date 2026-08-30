@@ -31,4 +31,15 @@ buffer:
 
 settings:
   timezone: "Asia/Riyadh"
-  require_approval: true   # لا تغيّرها إلى false في أول 3 أشهر
+  require_approval: true        # لا تغيّرها إلى false في أول 3 أشهر
+  auto_publish_green: false     # حتى لو صارت true، الأصفر والأحمر يظلان بمراجعة بشرية (§37)
+  default_language: "ar"        # ar أو en — تتجاوز persona.yml → voice.default_language
+
+# محرك الأخبار — العتبات والأوزان الأساسية في profile/persona.yml
+news:
+  posts_per_run: 3              # عدد عناقيد الأخبار التي تتحول إلى محتوى في كل دورة
+  platforms: ["linkedin_post", "twitter_thread", "twitter"]
+  limit_per_feed: 25            # حد الأخبار المقروءة من كل مصدر في الدورة الواحدة
+  # مزوّد أخبار مدفوع (اختياري) بدل/إضافةً إلى RSS — انظر docs/technical-requirements.md §5
+  newsapi_key: ""
+  gdelt_enabled: false
