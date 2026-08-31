@@ -63,8 +63,10 @@
 
 ## للمطوّر
 
-بناء النسخة السحابية الكاملة (قاعدة بيانات، وكلاء، لوحة تحكم، تكاملات، محرك تعلّم):
-[`docs/technical-requirements.md`](docs/technical-requirements.md).
+- **لماذا نبني هذا النظام** (بالإنجليزية — سلّمه للمطوّر أولاً):
+  [`docs/project-brief-EN.md`](docs/project-brief-EN.md)
+- **كيف يُبنى**: قاعدة البيانات، الوكلاء، الخوارزميات، التكاملات، معايير القبول:
+  [`docs/technical-requirements.md`](docs/technical-requirements.md)
 
 ## قاعدة ذهبية
 
