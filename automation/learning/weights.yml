@@ -1,0 +1,14 @@
+# أوزان التعلّم — تُولَّد بـ: python automation/feedback.py --learn
+# 1.0 = وزن محايد. هذه نقطة البداية قبل توفر بيانات أداء.
+# ترتفع تلقائياً للأعمدة التي يتفاعل معها الجمهور ويعتمدها يحيى، وتنخفض للعكس (§40).
+generated_at: seed
+samples: {performance_rows: 0, queue_rows: 0}
+pillar_multipliers:
+  ai_technology: 1.0
+  entrepreneurship: 1.0
+  construction_engineering: 1.0
+  real_estate: 1.0
+  saudi_economy: 1.0
+  business_management: 1.0
+  investment: 1.0
+  leadership_lessons: 1.0

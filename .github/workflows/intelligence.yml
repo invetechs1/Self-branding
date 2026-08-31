@@ -1,0 +1,50 @@
+# محرك الاستخبارات — اكتشاف الأخبار وترتيبها، والتقرير الأسبوعي، وتحديث أوزان التعلّم.
+# لا ينشر شيئاً: مخرجاته قصص مرتّبة وتقارير فقط. التوليد والنشر في مسار منفصل بمراجعة بشرية.
+
+name: intelligence-cycle
+
+on:
+  schedule:
+    - cron: "0 */3 * * *"     # اكتشاف كل 3 ساعات
+    - cron: "0 5 * * 6"       # السبت 08:00 بتوقيت الرياض: التقرير الأسبوعي + التعلّم
+  workflow_dispatch:
+    inputs:
+      report:
+        description: "توليد التقرير الأسبوعي وتحديث أوزان التعلّم"
+        type: boolean
+        default: false
+
+jobs:
+  intelligence:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r automation/requirements.txt
+
+      - name: Self-test scoring logic
+        run: python automation/persona.py --self-test
+
+      - name: Discover and score news
+        run: python automation/news_engine.py --discover
+
+      - name: Weekly intelligence report + learning
+        if: github.event.schedule == '0 5 * * 6' || inputs.report
+        run: |
+          python automation/news_engine.py --report
+          python automation/feedback.py --learn || echo "لا بيانات أداء كافية بعد"
+
+      - name: Commit intelligence outputs
+        run: |
+          git config user.name "brand-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add automation/queue/news.jsonl analytics/intelligence/ \
+                  analytics/learning-report.md automation/learning/weights.yml || true
+          git diff --cached --quiet || git commit -m "chore: تحديث مخرجات محرك الاستخبارات"
+          git push

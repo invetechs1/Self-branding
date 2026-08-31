@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
-"""الناشر المجدول — يقرأ queue/queue.csv وينشر ما حان وقته.
+"""الناشر المجدول — يقرأ queue/queue.csv وينشر ما حان وقته (§38 خطوتا 11-12).
 
-ينشر فقط الصفوف بحالة approved التي حان موعدها (بتوقيت settings.timezone).
+بوابة الاعتماد (§37):
+  أحمر  — لا يُنشر إلا بحالة approved كتبها إنسان صراحةً. لا نشر آلي إطلاقاً.
+  أصفر  — يتطلب approved (مراجعة بشرية).
+  أخضر  — يتطلب approved أيضاً، إلا إذا فُعّل settings.auto_publish_green في config.yml.
 النشر عبر الـ APIs الرسمية فقط. المنصات غير المهيأة تُتخطى مع تنبيه.
 
 يُشغَّل كل ساعة عبر GitHub Actions (انظر .github/workflows/publish.yml)
@@ -19,6 +22,17 @@ import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 QUEUE = ROOT / "automation" / "queue" / "queue.csv"
+
+
+def publishable(row: dict, settings: dict) -> tuple[bool, str]:
+    """§37: من يُسمح بنشره الآن؟"""
+    level = (row.get("approval_level") or "yellow").lower()
+    status = row.get("status", "")
+    if status == "approved":
+        return True, ""
+    if level == "green" and settings.get("auto_publish_green") and not settings.get("require_approval", True):
+        return True, "أخضر — نشر آلي مفعّل"
+    return False, f"بانتظار الاعتماد (المستوى: {level})"
 
 
 def load_config():
@@ -108,21 +122,29 @@ def main():
         print("طابور النشر فارغ.")
         return
 
+    settings = cfg.get("settings", {})
     rows = list(csv.DictReader(QUEUE.open(encoding="utf-8")))
     changed = False
 
     for row in rows:
-        if row["status"] != "approved":
+        if row["status"] in ("posted", "manual", "skip", "error"):
+            continue
+        allowed, why = publishable(row, settings)
+        if not allowed:
             continue
         due = datetime.strptime(f"{row['date']} {row['time']}", "%Y-%m-%d %H:%M").replace(tzinfo=tz)
         if due > now:
             continue
 
         if args.dry_run:
-            print(f"[dry-run] كان سيُنشر: #{row['id']} {row['platform']}")
+            print(f"[dry-run] كان سيُنشر: #{row['id']} {row['platform']} "
+                  f"({row.get('approval_level', '?')}) {why}")
             continue
 
         publisher = PUBLISHERS.get(row["platform"])
+        if publisher is None:
+            print(f"#{row['id']}: منصة غير معروفة ({row['platform']}) — تُخطّى")
+            continue
         try:
             status, note = publisher(cfg, row["content"])
         except Exception as e:  # noqa: BLE001 — فشل منصة واحدة لا يوقف البقية

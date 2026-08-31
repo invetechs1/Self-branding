@@ -1,0 +1,44 @@
+# مصادر الاكتشاف (§18) — عدّل الروابط بحرية.
+# ⚠️ تحقّق من عمل كل رابط على جهازك قبل الاعتماد عليه:
+#   python automation/news_engine.py --check-sources
+# روابط RSS تتغير مع تحديثات المواقع؛ الفاشل منها احذفه أو استبدله (مزوّد أخبار مدفوع بديل جيد).
+#
+# type: يحدد درجة المصداقية من profile/persona.yml → source_credibility
+#   official_government (100) · official_company (95) · major_international_publication (90)
+#   industry_publication (80) · professional_analyst (70) · social_media (55) · unknown_website (20)
+#
+# القاعدة (§18): السوشيال ميديا للاكتشاف المبكر فقط — لا تُعامل كمعلومة موثّقة.
+
+feeds:
+  # ── السعودية والخليج ──
+  - {name: "Arab News — Business", url: "https://www.arabnews.com/cat/6/rss.xml", type: major_international_publication, region: saudi_arabia}
+  - {name: "Saudi Gazette", url: "https://saudigazette.com.sa/rssFeed/74", type: industry_publication, region: saudi_arabia}
+  - {name: "Argaam English", url: "https://www.argaam.com/en/rss", type: industry_publication, region: saudi_arabia}
+  - {name: "Zawya MENA", url: "https://www.zawya.com/en/rss", type: industry_publication, region: gcc}
+  - {name: "Wamda — MENA Startups", url: "https://www.wamda.com/feed", type: industry_publication, region: gcc}
+  - {name: "Construction Week Middle East", url: "https://www.constructionweekonline.com/rss", type: industry_publication, region: gcc}
+
+  # ── الإنشاءات والهندسة (ConTech / BIM) ──
+  - {name: "Construction Dive", url: "https://www.constructiondive.com/feeds/news/", type: industry_publication, region: united_states}
+  - {name: "ENR", url: "https://www.enr.com/rss/all-news", type: industry_publication, region: united_states}
+  - {name: "BIM+", url: "https://www.bimplus.co.uk/feed/", type: industry_publication, region: europe}
+
+  # ── الذكاء الاصطناعي والتقنية المؤسسية ──
+  - {name: "TechCrunch", url: "https://techcrunch.com/feed/", type: major_international_publication, region: united_states}
+  - {name: "VentureBeat AI", url: "https://venturebeat.com/category/ai/feed/", type: major_international_publication, region: united_states}
+  - {name: "Crunchbase News", url: "https://news.crunchbase.com/feed/", type: industry_publication, region: united_states}
+  - {name: "Google AI Blog", url: "https://blog.google/technology/ai/rss/", type: official_company, region: global}
+  - {name: "NVIDIA Blog", url: "https://blogs.nvidia.com/feed/", type: official_company, region: global}
+  - {name: "AWS Machine Learning Blog", url: "https://aws.amazon.com/blogs/machine-learning/feed/", type: official_company, region: global}
+
+  # ── العقار واللوجستيات ──
+  - {name: "PropTech / Real Estate — Inman", url: "https://www.inman.com/feed/", type: industry_publication, region: united_states}
+  - {name: "Supply Chain Dive", url: "https://www.supplychaindive.com/feeds/news/", type: industry_publication, region: united_states}
+
+# مصادر رسمية بلا RSS — تُتابَع يدوياً أو عبر مزوّد أخبار مدفوع (انظر docs/technical-requirements.md §5)
+manual_watch:
+  - {name: "واس — وكالة الأنباء السعودية", url: "https://www.spa.gov.sa", type: official_government}
+  - {name: "رؤية 2030", url: "https://www.vision2030.gov.sa/ar/news", type: official_government}
+  - {name: "صندوق الاستثمارات العامة", url: "https://www.pif.gov.sa/ar/news-and-insights/", type: official_government}
+  - {name: "الهيئة السعودية للمقاولين", url: "https://sca.gov.sa", type: official_government}
+  - {name: "وزارة الإسكان / سكني", url: "https://sakani.sa", type: official_government}
