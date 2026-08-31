@@ -1,7 +1,15 @@
 #!/usr/bin/env python3
-"""Markdown → styled HTML → PDF (headless Chromium)."""
-import re, subprocess, sys, pathlib
+"""تحويل مستندات المستودع من Markdown إلى PDF منسّق (عبر Chromium بلا واجهة).
+
+    python docs/md2pdf.py docs/project-brief-EN.md docs/project-brief-EN.pdf
+
+يتطلب: pip install markdown، ومتصفح Chromium/Chrome.
+حدّد مسار المتصفح بمتغير البيئة CHROME_BIN إن اختلف على جهازك.
+"""
+import os, re, subprocess, sys, pathlib
 import markdown
+
+CHROME = os.environ.get("CHROME_BIN", "chromium")
 
 src, out = pathlib.Path(sys.argv[1]).resolve(), pathlib.Path(sys.argv[2]).resolve()
 text = src.read_text(encoding="utf-8")
@@ -105,7 +113,7 @@ html = f"""<!doctype html><html><head><meta charset="utf-8">
 tmp_html = out.with_suffix(".render.html")
 tmp_html.write_text(html, encoding="utf-8")
 subprocess.run([
-    "/opt/pw-browsers/chromium-1194/chrome-linux/chrome", "--headless", "--disable-gpu",
+    CHROME, "--headless", "--disable-gpu",
     "--no-sandbox", "--no-pdf-header-footer", "--run-all-compositor-stages-before-draw",
     f"--print-to-pdf={out}", tmp_html.as_uri(),
 ], check=True, capture_output=True)
