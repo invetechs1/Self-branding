@@ -4,34 +4,29 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- عدّل كل قيمة بين {{ }} من profile/facts.yml — لا تنشر الموقع قبل ذلك -->
-  <title>{{الاسم}} — استشاري إدارة مشاريع وتخطيط استراتيجي</title>
-  <meta name="description" content="{{الاسم}}، {{اللقب المهني الحقيقي}}. أشارك خبرتي في إدارة المشاريع والتخطيط الاستراتيجي وبناء الأعمال — بالأرقام ومن التجربة.">
-  <link rel="canonical" href="https://{{الدومين}}/">
+  <title>م. يحيى آل سالمة — مهندس مدني، رائد أعمال، وباني أنظمة ذكاء اصطناعي للإنشاءات</title>
+  <meta name="description" content="م. يحيى آل سالمة، مهندس مدني ورائد أعمال سعودي. أشارك خبرتي في إدارة المشاريع الإنشائية وبناء الشركات وأنظمة الذكاء الاصطناعي لقطاع المقاولات — بالأرقام ومن التجربة.">
 
   <!-- Open Graph لمشاركات السوشيال ميديا -->
   <meta property="og:type" content="profile">
-  <meta property="og:title" content="{{الاسم}} — إدارة مشاريع وريادة أعمال">
-  <meta property="og:description" content="محتوى عملي في إدارة المشاريع والتخطيط الاستراتيجي وبناء الشركات.">
-  <meta property="og:image" content="https://{{الدومين}}/photo.jpg">
+  <meta property="og:title" content="م. يحيى آل سالمة — مهندس مدني ورائد أعمال">
+  <meta property="og:description" content="محتوى عملي في إدارة المشاريع الإنشائية وبناء الشركات وأنظمة الذكاء الاصطناعي لقطاع المقاولات.">
+  <meta property="og:image" content="photo.jpg">
 
-  <!-- Schema.org Person — يعرّف Google عليك ككيان ويربط حساباتك ببعضها -->
+  <!-- Schema.org Person — يعرّف Google عليك ككيان -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "Person",
-    "name": "{{الاسم بالعربية}}",
-    "alternateName": "{{Name in English}}",
-    "jobTitle": "{{اللقب المهني الحقيقي}}",
-    "description": "{{وصف من جملتين مبني على facts.yml}}",
-    "url": "https://{{الدومين}}/",
-    "image": "https://{{الدومين}}/photo.jpg",
-    "knowsAbout": ["إدارة المشاريع", "التخطيط الاستراتيجي", "ريادة الأعمال", "إدارة الشركات"],
+    "name": "م. يحيى آل سالمة",
+    "alternateName": "Yahya Al Salamah",
+    "jobTitle": "مهندس مدني ورائد أعمال | ماجستير إدارة مشاريع | باني أنظمة ذكاء اصطناعي لقطاع الإنشاءات",
+    "description": "مهندس مدني ورائد أعمال سعودي، مؤسس عزوم المتحدة للمقاولات والعراب للاستشارات الهندسية وبصير لتقنية المعلومات.",
+    "image": "photo.jpg",
+    "knowsAbout": ["إدارة المشاريع الإنشائية", "التخطيط الاستراتيجي", "الذكاء الاصطناعي في الإنشاءات", "ريادة الأعمال", "إدارة العقود والمخاطر"],
     "sameAs": [
-      "https://x.com/{{حساب_تويتر}}",
-      "https://www.instagram.com/{{حساب_انستقرام}}",
-      "https://www.tiktok.com/@{{حساب_تيكتوك}}",
-      "https://www.linkedin.com/in/{{حساب_لينكدإن}}"
+      "https://www.linkedin.com/in/yahya-alsalamah-b0a790170/",
+      "https://x.com/alsalamah_y"
     ]
   }
   </script>
@@ -41,8 +36,11 @@
     * { margin:0; padding:0; box-sizing:border-box; }
     body { font-family:"Segoe UI",Tahoma,Arial,sans-serif; background:var(--bg); color:var(--ink); line-height:1.8; }
     .wrap { max-width:820px; margin:0 auto; padding:2rem 1.25rem; }
-    header.hero { text-align:center; padding:4rem 0 3rem; }
-    .hero img { width:140px; height:140px; border-radius:50%; object-fit:cover; border:3px solid var(--accent); }
+    .lang-switch { max-width:820px; margin:0 auto; padding:1rem 1.25rem 0; text-align:end; }
+    .lang-switch button { background:none; border:1.5px solid var(--accent); color:var(--accent); padding:.35rem 1rem; border-radius:20px; font-weight:700; cursor:pointer; font-size:.85rem; }
+    .lang-switch button:hover { background:var(--accent); color:#fff; }
+    header.hero { text-align:center; padding:3rem 0 3rem; }
+    .avatar-img { width:140px; height:140px; border-radius:50%; object-fit:cover; border:3px solid var(--accent); display:block; margin:0 auto; }
     h1 { font-size:2rem; margin:1rem 0 .25rem; }
     .tagline { color:var(--accent); font-weight:600; }
     .bio { color:var(--muted); max-width:600px; margin:1rem auto; }
@@ -50,52 +48,110 @@
     section { margin:3rem 0; }
     h2 { font-size:1.4rem; border-inline-start:4px solid var(--accent); padding-inline-start:.75rem; margin-bottom:1rem; }
     .proof li { margin-bottom:.6rem; }
-    .articles article { padding:1rem 0; border-bottom:1px solid #e5e5df; }
-    .articles a { color:var(--ink); text-decoration:none; font-weight:600; }
     .cta { background:var(--ink); color:#fff; text-align:center; padding:2.5rem 1.5rem; border-radius:12px; }
-    .cta a { display:inline-block; margin-top:1rem; background:var(--accent); color:#fff; padding:.7rem 2rem; border-radius:8px; text-decoration:none; font-weight:700; }
+    .cta a.btn { display:inline-block; margin-top:1rem; margin-inline:.3rem; background:var(--accent); color:#fff; padding:.7rem 2rem; border-radius:8px; text-decoration:none; font-weight:700; }
     footer { text-align:center; color:var(--muted); padding:2rem 0; font-size:.9rem; }
+    [hidden] { display:none !important; }
   </style>
 </head>
 <body>
-  <div class="wrap">
+
+  <div class="lang-switch">
+    <button id="langToggle" type="button" aria-label="Switch language">EN</button>
+  </div>
+
+  <!-- ═══════════════════════ نسخة عربية ═══════════════════════ -->
+  <div class="wrap" id="content-ar" lang="ar" dir="rtl">
 
     <header class="hero">
-      <img src="photo.jpg" alt="{{الاسم}}">
-      <h1>{{الاسم}}</h1>
-      <p class="tagline">{{اللقب المهني الحقيقي — كما في facts.yml}}</p>
-      <p class="bio">{{نبذة من 2–3 جمل: من أنت، ماذا تفعل الآن، وما القيمة التي تقدمها لجمهورك. حقيقية وقابلة للإثبات.}}</p>
+      <img class="avatar-img" src="photo.jpg" alt="م. يحيى آل سالمة">
+      <h1>م. يحيى آل سالمة</h1>
+      <p class="tagline">مهندس مدني ورائد أعمال | ماجستير إدارة مشاريع | باني أنظمة ذكاء اصطناعي لقطاع الإنشاءات</p>
+      <p class="bio">مهندس مدني ورائد أعمال سعودي، أدير مشاريع حكومية ومطارات وبنية تحتية. أسست عزوم المتحدة للمقاولات والعراب للاستشارات الهندسية وبصير لتقنية المعلومات، حيث أبني أنظمة ذكاء اصطناعي سعودية تنقل قطاع الإنشاءات من الإدارة بالحدس إلى الإدارة بالبيانات.</p>
       <nav class="socials">
-        <a href="https://x.com/{{حساب}}">𝕏 تويتر</a>
-        <a href="https://instagram.com/{{حساب}}">انستقرام</a>
-        <a href="https://tiktok.com/@{{حساب}}">تيك توك</a>
-        <a href="https://linkedin.com/in/{{حساب}}">لينكدإن</a>
+        <a href="https://www.linkedin.com/in/yahya-alsalamah-b0a790170/">لينكدإن</a>
+        <a href="https://x.com/alsalamah_y">𝕏 تويتر</a>
       </nav>
     </header>
 
     <section>
       <h2>خبرتي</h2>
       <ul class="proof">
-        <!-- من experience و ventures في facts.yml — كل بند حقيقي وقابل للتحقق -->
-        <li>{{إنجاز/خبرة 1}}</li>
-        <li>{{إنجاز/خبرة 2}}</li>
-        <li>{{إنجاز/خبرة 3}}</li>
+        <li>إدارة مشاريع حكومية ومشاريع مطارات وبنية تحتية وخرسانة وأعمال مدنية ومعمارية — عقود، مخاطر، جودة، ميزانيات، وتدفقات نقدية</li>
+        <li>المؤسس والرئيس التنفيذي لشركة عزوم المتحدة للمقاولات — مطارات، مباني، بنية تحتية، وطرق</li>
+        <li>مؤسس شركة العراب للاستشارات الهندسية، وبصير لتقنية المعلومات حيث أبني أنظمة ذكاء اصطناعي سعودية لقطاع الإنشاءات (منها منصة BEVIP لمراقبة المشاريع، وERP متكامل للمقاولات)</li>
       </ul>
-    </section>
-
-    <section class="articles">
-      <h2>أحدث المقالات</h2>
-      <!-- تُضاف تلقائياً من site/articles/ — كل مقال صفحة SEO جديدة -->
-      <article><a href="articles/example.html">{{عنوان المقال}}</a><p>{{مقتطف}}</p></article>
     </section>
 
     <section class="cta">
       <h2 style="border:none;padding:0">هل تبني مشروعاً أو تدير فريقاً؟</h2>
-      <p>أشارك أدوات وخلاصات عملية أسبوعياً.</p>
-      <a href="https://x.com/{{حساب}}">تابعني على X</a>
+      <p>أشارك أدوات وخلاصات عملية حول إدارة المشاريع والتحول الرقمي في المقاولات.</p>
+      <a class="btn" href="https://www.linkedin.com/in/yahya-alsalamah-b0a790170/">تواصل معي على لينكدإن</a>
+      <a class="btn" href="https://x.com/alsalamah_y">تابعني على X</a>
     </section>
 
-    <footer>© {{السنة}} {{الاسم}} — جميع الحقوق محفوظة</footer>
+    <footer>© 2026 م. يحيى آل سالمة — جميع الحقوق محفوظة</footer>
   </div>
+
+  <!-- ═══════════════════════ English version ═══════════════════════ -->
+  <div class="wrap" id="content-en" lang="en" dir="ltr" hidden>
+
+    <header class="hero">
+      <img class="avatar-img" src="photo.jpg" alt="Eng. Yahya Al Salamah">
+      <h1>Eng. Yahya Al Salamah</h1>
+      <p class="tagline">Entrepreneur | Engineer | Business Builder | Technology Founder | Real Estate Developer</p>
+      <p class="bio">Saudi civil engineer and entrepreneur managing government projects, airports, and infrastructure. Founder of Azoom United Contracting, Alarrab Engineering Consultancy, and Bassir Technology, where I build Saudi AI systems that shift the construction sector from intuition-driven management to data-driven management.</p>
+      <nav class="socials">
+        <a href="https://www.linkedin.com/in/yahya-alsalamah-b0a790170/">LinkedIn</a>
+        <a href="https://x.com/alsalamah_y">𝕏 Twitter</a>
+      </nav>
+    </header>
+
+    <section>
+      <h2>Experience</h2>
+      <ul class="proof">
+        <li>Managing government projects, airports, infrastructure, concrete, and civil/architectural works — contracts, risk, quality, budgets, and cash flow</li>
+        <li>Founder and CEO of Azoom United Contracting — airports, buildings, infrastructure, and roads</li>
+        <li>Founder of Alarrab Engineering Consultancy and Bassir Technology, building Saudi AI systems for the construction sector (including the BEVIP project-monitoring platform and an integrated contracting ERP)</li>
+      </ul>
+    </section>
+
+    <section class="cta">
+      <h2 style="border:none;padding:0">Building a project or leading a team?</h2>
+      <p>I share practical tools and insights on project management and digital transformation in contracting.</p>
+      <a class="btn" href="https://www.linkedin.com/in/yahya-alsalamah-b0a790170/">Connect on LinkedIn</a>
+      <a class="btn" href="https://x.com/alsalamah_y">Follow on X</a>
+    </section>
+
+    <footer>© 2026 Eng. Yahya Al Salamah — All rights reserved</footer>
+  </div>
+
+  <script>
+    (function () {
+      var toggle = document.getElementById('langToggle');
+      var ar = document.getElementById('content-ar');
+      var en = document.getElementById('content-en');
+      var html = document.documentElement;
+
+      function setLang(lang) {
+        var showEn = lang === 'en';
+        ar.hidden = showEn;
+        en.hidden = !showEn;
+        toggle.textContent = showEn ? 'AR' : 'EN';
+        html.lang = lang;
+        html.dir = showEn ? 'ltr' : 'rtl';
+        try { localStorage.setItem('siteLang', lang); } catch (e) {}
+      }
+
+      toggle.addEventListener('click', function () {
+        setLang(en.hidden ? 'en' : 'ar');
+      });
+
+      var saved = null;
+      try { saved = localStorage.getItem('siteLang'); } catch (e) {}
+      if (saved === 'en') setLang('en');
+    })();
+  </script>
+
 </body>
 </html>

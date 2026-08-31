@@ -7,7 +7,7 @@
 #   profile/persona-spec.md   المواصفة المرجعية الكاملة للشخصية ومحرك المحتوى
 
 identity:
-  name_ar: "م. يحيى حسين السلامة"
+  name_ar: "م. يحيى حسين آل سالمة"
   name_en: "Yahya Hussain Al Salamah"
   nationality: "سعودي"
   title: "مهندس مدني ورائد أعمال | ماجستير إدارة مشاريع | أبني أنظمة ذكاء اصطناعي لقطاع الإنشاءات"
@@ -103,10 +103,10 @@ story:
   current_goal: "بناء منظومة تقنية سعودية متكاملة (بصير) تنقل قطاع الإنشاءات من الإدارة التقليدية إلى الإدارة الرقمية بالذكاء الاصطناعي، وتنافس الأنظمة العالمية"
 
 accounts:
-  twitter: ""      # TODO
+  twitter: "alsalamah_y"
   instagram: ""    # TODO
   tiktok: ""       # TODO
-  linkedin: ""     # TODO
+  linkedin: "yahya-alsalamah-b0a790170"
   website: ""      # TODO: يُقترح yahya-alsalamah.com أو bassir.tech
 
 # ─── قواعد صياغة خاصة بهذا الملف (يقرؤها مولد المحتوى) ───
