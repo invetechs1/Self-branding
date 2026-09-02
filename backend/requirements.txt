@@ -1,0 +1,19 @@
+# Phase 1 (Foundation) — installed and used starting now.
+pydantic>=2.8
+pydantic-settings>=2.4
+PyYAML>=6.0
+sqlalchemy>=2.0
+psycopg[binary]>=3.2
+alembic>=1.13
+pgvector>=0.3
+fastapi>=0.115
+uvicorn[standard]>=0.30
+feedparser>=6.0
+anthropic>=0.40
+tweepy>=4.14
+requests>=2.31
+bcrypt>=4.1
+
+# Phase 1/8 — async jobs, added alongside the worker services.
+# celery>=5.4
+# redis>=5.0

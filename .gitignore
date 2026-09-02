@@ -1,11 +1,30 @@
 # أسرار — لا تُرفع أبداً
 automation/config.yml
+backend/config.yml
 *.env
 .env*
 
 __pycache__/
 *.pyc
-.DS_Store
+*.pyo
+.pytest_cache/
+*.egg-info/
+
+# بيئات بايثون الافتراضية — تُنشأ محلياً بـ requirements.txt، لا تُرفع
+.venv/
+venv/
 
 # صور Docker المصدَّرة — كبيرة الحجم، لا تُرفع إلى git
 *.tar
+
+# لوحة التحكم (Next.js) — عندما تُضاف
+node_modules/
+.next/
+dist/
+build/
+
+# ملفات نظام التشغيل والمحررات
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

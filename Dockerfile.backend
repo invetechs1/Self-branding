@@ -1,0 +1,18 @@
+# FastAPI backend for the Yahya AI Content Intelligence Platform.
+# Secrets are NOT baked in — passed at `docker run` time via --env-file (see deployment.md).
+FROM python:3.12-slim
+
+WORKDIR /app
+
+COPY backend/requirements.txt backend/requirements.txt
+RUN pip install --no-cache-dir -r backend/requirements.txt
+
+COPY backend/ backend/
+# scripts/seed.py reads these two repo-root config dirs (persona/facts/sources
+# YAML) — .dockerignore already strips automation/config.yml and automation/queue.
+COPY profile/ profile/
+COPY automation/ automation/
+WORKDIR /app/backend
+
+EXPOSE 8000
+CMD ["uvicorn", "app.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -1,0 +1,23 @@
+# Next.js dashboard for the Yahya AI Content Intelligence Platform.
+# BACKEND_URL/BACKEND_API_KEY/SESSION_SECRET are read server-side at request
+# time (never baked into the client bundle — no NEXT_PUBLIC_ prefix on any of
+# them), so this image is built once and configured per-environment via
+# `docker run -e` / --env-file at deploy time.
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+COPY frontend/ .
+RUN npm run build
+
+FROM node:20-alpine
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=builder /app/package.json /app/package-lock.json ./
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/next.config.mjs ./next.config.mjs
+
+EXPOSE 3000
+CMD ["npm", "start"]

@@ -6,3 +6,18 @@ automation/config.yml
 automation/queue
 .DS_Store
 *.tar
+
+# secrets — never bake into an image, always passed at `docker run` time
+.env
+.env.*
+backend/.env
+backend/.env.*
+frontend/.env.local
+frontend/.env.local.*
+
+# local dev artifacts — irrelevant/harmful inside a build context
+backend/.venv
+backend/.pytest_cache
+backend/**/__pycache__
+frontend/node_modules
+frontend/.next
