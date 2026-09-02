@@ -66,6 +66,13 @@ export interface DraftOut {
   sources: SourceRef[];
 }
 
+export interface RejectedDraftOut extends DraftOut {
+  rejected_at: string | null;
+  reason_tags: string[];
+  comment: string | null;
+  rejected_by: string | null;
+}
+
 // ── Discovery ──
 
 export interface DiscoveryStatus {

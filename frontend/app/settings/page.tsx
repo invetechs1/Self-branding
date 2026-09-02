@@ -189,6 +189,7 @@ function PillarsSection() {
   const { t, locale } = useLocale();
   const [pillars, setPillars] = useState<PillarSetting[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [commitError, setCommitError] = useState<string | null>(null);
 
   function load() {
     api.pillarSettings().then((rows) => setPillars(rows as PillarSetting[])).catch((e) => setError(String(e)));
@@ -196,10 +197,16 @@ function PillarsSection() {
   useEffect(load, []);
 
   async function handleChange(key: string, value: number) {
+    setCommitError(null);
     setPillars((prev) => prev ? prev.map((p) => p.key === key ? { ...p, target_share: value } : p) : prev);
   }
   async function handleCommit(key: string, value: number) {
-    await api.updatePillarShare(key, value);
+    try {
+      await api.updatePillarShare(key, value);
+    } catch (e) {
+      setCommitError(String(e));
+      load(); // revert the optimistic change back to the last saved value
+    }
   }
 
   if (error) return <ErrorText message={error} />;
@@ -212,6 +219,11 @@ function PillarsSection() {
           {t("settings.pillars.intro")}
         </p>
       </div>
+      {commitError && (
+        <div className="reason-banner red" style={{ marginTop: 12 }}>
+          <div>{commitError}</div>
+        </div>
+      )}
       <div className="card card-rows" style={{ marginTop: 14 }}>
         {pillars.map((p) => (
           <div className="settings-row" key={p.key}>

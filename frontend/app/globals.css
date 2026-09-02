@@ -230,7 +230,9 @@ table.tbl tr:last-child td { border-bottom: none; }
 .rail-head { padding: 14px 16px 10px; border-bottom: 1px solid var(--border); }
 .progress-track { height: 6px; border-radius: 4px; background: var(--surface-3); overflow: hidden; margin-top: 8px; }
 .progress-fill { height: 100%; background: var(--accent); transition: width .25s; }
-.rail-tabs { display: flex; gap: 4px; padding: 8px 12px; border-bottom: 1px solid var(--border); overflow-x: auto; }
+.rail-tabs { display: flex; flex-direction: column; gap: 6px; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+.rail-tabs-row { display: flex; gap: 4px; flex-wrap: wrap; }
+.rail-tabs-row + .rail-tabs-row { padding-top: 6px; border-top: 1px solid var(--border); }
 .rail-list { flex: 1; overflow-y: auto; padding: 8px; }
 .draft-card { padding: 12px 12px; border-radius: 9px; border: 1px solid transparent; cursor: pointer; margin-bottom: 4px; }
 .draft-card:hover { background: var(--surface-3); }

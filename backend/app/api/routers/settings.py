@@ -136,8 +136,15 @@ def list_pillars(session: Session = Depends(get_session)) -> list[PillarOut]:
 def update_pillar(key: str, body: PillarUpdate, session: Session = Depends(get_session)) -> PillarOut:
     if not (0 <= body.target_share <= 1):
         raise HTTPException(status_code=400, detail="target_share must be between 0 and 1")
+    repo = PersonaRepository(session)
+    others_total = sum(float(p.target_share) for p in repo.list_pillars() if p.key != key)
+    new_total = others_total + body.target_share
+    if new_total > 1.0 + 1e-6:
+        raise HTTPException(status_code=400,
+                            detail=f"would push the total content mix to {new_total * 100:.0f}% — "
+                                   f"reduce another pillar first (max {(1.0 - others_total) * 100:.0f}% here)")
     try:
-        p = PersonaRepository(session).set_pillar_target_share(key, body.target_share)
+        p = repo.set_pillar_target_share(key, body.target_share)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     session.commit()

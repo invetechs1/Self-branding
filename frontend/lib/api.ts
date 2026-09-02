@@ -27,6 +27,7 @@ export const api = {
     return request(`/drafts${suffix}`);
   },
   draft: (id: string) => request(`/drafts/${id}`),
+  rejectedDrafts: () => request("/drafts/rejected"),
   generateDraft: (clusterId: string, platform: string, language?: string) =>
     request("/drafts/generate", {
       method: "POST",

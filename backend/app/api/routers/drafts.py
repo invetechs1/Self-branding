@@ -93,6 +93,33 @@ def list_drafts(platform: str | None = None, safety: str | None = None,
     return [_to_out(p, session) for p in posts]
 
 
+class RejectedDraftOut(DraftOut):
+    rejected_at: str | None = None
+    reason_tags: list[str] = []
+    comment: str | None = None
+    rejected_by: str | None = None
+
+
+@router.get("/rejected", response_model=list[RejectedDraftOut])
+def list_rejected(platform: str | None = None, session: Session = Depends(get_session)) -> list[RejectedDraftOut]:
+    """Archive view for the Drafts screen's "Rejected" tab — nothing is ever
+    deleted, this is just excluded from the default active-queue list."""
+    posts = PostRepository(session).list_rejected(platform=platform)
+    out = []
+    for p in posts:
+        base = _to_out(p, session)
+        last_decision = max((a for a in p.approvals if a.decision == "rejected"),
+                            key=lambda a: a.decided_at, default=None)
+        out.append(RejectedDraftOut(
+            **base.model_dump(),
+            rejected_at=last_decision.decided_at.isoformat() if last_decision else None,
+            reason_tags=last_decision.reason_tags if last_decision else [],
+            comment=last_decision.edit_diff if last_decision else None,
+            rejected_by=last_decision.decided_by if last_decision else None,
+        ))
+    return out
+
+
 @router.get("/{draft_id}", response_model=DraftOut)
 def get_draft(draft_id: uuid.UUID, session: Session = Depends(get_session)) -> DraftOut:
     post = PostRepository(session).get(draft_id)

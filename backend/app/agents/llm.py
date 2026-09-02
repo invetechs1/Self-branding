@@ -39,7 +39,12 @@ def _default_call(*, model: str, system: str, user: str, max_tokens: int) -> str
     client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
     msg = client.messages.create(model=model, max_tokens=max_tokens, system=system,
                                  messages=[{"role": "user", "content": user}])
-    return msg.content[0].text.strip()
+    # content[0] isn't reliably the text block — models that emit extended
+    # thinking put a ThinkingBlock first, so scan for the actual text block.
+    for block in msg.content:
+        if block.type == "text":
+            return block.text.strip()
+    raise RuntimeError(f"no text block in Anthropic response: {msg.content!r}")
 
 
 def complete(*, model: str, system: str, user: str, max_tokens: int = 2000,

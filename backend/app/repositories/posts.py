@@ -30,12 +30,27 @@ class PostRepository:
         return self.session.get(Post, post_id)
 
     def list_drafts(self, *, platform: str | None = None, safety: str | None = None) -> list[Post]:
-        stmt = select(Post).where(Post.status.in_(["draft", "pending_review"]))
+        # Everything still actionable from the review queue: not yet decided
+        # (draft/pending_review), or decided but not yet published (approved/
+        # scheduled/failed — the Drafts screen's action bar renders a "Publish
+        # now" / retry button for each of these). Excludes 'rejected' (done,
+        # discarded) and 'posted' (done, tracked on the Performance screen).
+        stmt = select(Post).where(Post.status.in_(
+            ["draft", "pending_review", "approved", "scheduled", "failed"]))
         if platform:
             stmt = stmt.where(Post.platform == platform)
         if safety:
             stmt = stmt.where(Post.approval_level == safety)
         stmt = stmt.order_by(Post.relevance.desc().nullslast(), Post.created_at.desc())
+        return list(self.session.scalars(stmt))
+
+    def list_rejected(self, *, platform: str | None = None, limit: int = 100) -> list[Post]:
+        """Archive view — rejected drafts (manual rejections and regenerate's
+        auto-supersede) are never deleted, just excluded from the active queue."""
+        stmt = select(Post).where(Post.status == "rejected")
+        if platform:
+            stmt = stmt.where(Post.platform == platform)
+        stmt = stmt.order_by(Post.created_at.desc()).limit(limit)
         return list(self.session.scalars(stmt))
 
     def recent_bodies(self, limit: int = 60) -> list[str]:

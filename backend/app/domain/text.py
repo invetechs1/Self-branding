@@ -12,6 +12,14 @@ import re
 import unicodedata
 
 _AR_NORMALIZE = str.maketrans({"أ": "ا", "إ": "ا", "آ": "ا", "ى": "ي", "ة": "ه", "ـ": ""})
+# Real Arabic text overwhelmingly uses the definite article ("الذكاء الاصطناعي" —
+# "the AI"), while keyword/alias lists are written in the bare/indefinite form
+# ("ذكاء اصطناعي") — without stripping it, those two forms never match as a
+# substring of one another and Arabic articles silently score near-zero on
+# every keyword-based component. Threshold >=3 remaining chars deliberately
+# leaves short words like "التي"/"الذي" (relative pronouns, already in
+# STOPWORDS) untouched.
+_AR_AL_PREFIX = re.compile(r"(?<![\w؀-ۿ])ال(?=[\w؀-ۿ]{3,})")
 
 STOPWORDS = {
     "the", "and", "for", "with", "from", "that", "this", "into", "after", "over", "its",
@@ -21,10 +29,14 @@ STOPWORDS = {
 
 
 def normalize(text: str) -> str:
-    """Normalize Arabic/English text for matching: lowercase, no diacritics, unified alef/ya/ta."""
+    """Normalize Arabic/English text for matching: lowercase, no diacritics, unified
+    alef/ya/ta, definite-article ("ال") stripped so indefinite alias/keyword terms
+    still match real (almost always definite) Arabic news text."""
     text = unicodedata.normalize("NFKC", text or "").lower()
     text = "".join(c for c in text if not unicodedata.combining(c))
-    return re.sub(r"\s+", " ", text.translate(_AR_NORMALIZE))
+    text = text.translate(_AR_NORMALIZE)
+    text = _AR_AL_PREFIX.sub("", text)
+    return re.sub(r"\s+", " ", text)
 
 
 def hits(text: str, terms) -> list:

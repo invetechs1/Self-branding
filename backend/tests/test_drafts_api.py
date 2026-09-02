@@ -93,6 +93,26 @@ def test_reject_draft_with_reason_tags(client, db_session):
     assert resp.json()["status"] == "rejected"
 
 
+def test_rejected_draft_drops_out_of_the_active_queue(client, db_session):
+    post = _make_draft(db_session)
+    client.post(f"/drafts/{post.id}/reject", json={"reason_tags": ["tone"]}, headers=HEADERS)
+    assert client.get("/drafts", headers=HEADERS).json() == []
+
+
+def test_rejected_draft_is_visible_in_the_rejected_archive_with_its_reason(client, db_session):
+    post = _make_draft(db_session)
+    client.post(f"/drafts/{post.id}/reject",
+               json={"reason_tags": ["tone", "weak-insight"], "comment": "Not quite right."},
+               headers=HEADERS)
+    listing = client.get("/drafts/rejected", headers=HEADERS).json()
+    assert len(listing) == 1
+    assert listing[0]["id"] == str(post.id)
+    assert listing[0]["status"] == "rejected"
+    assert listing[0]["reason_tags"] == ["tone", "weak-insight"]
+    assert listing[0]["comment"] == "Not quite right."
+    assert listing[0]["rejected_at"] is not None
+
+
 def test_get_unknown_draft_returns_404(client):
     import uuid
     resp = client.get(f"/drafts/{uuid.uuid4()}", headers=HEADERS)

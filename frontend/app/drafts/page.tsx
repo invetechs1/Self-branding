@@ -6,10 +6,14 @@ import { Shell } from "@/components/Shell";
 import { ScoreBadge, PillarTag, ConfidencePill, PlatformBadge, BreakdownRows, SourcesList } from "@/components/Badges";
 import { DraftsIcon, RefreshIcon } from "@/components/Icons";
 import { api } from "@/lib/api";
-import { DraftOut } from "@/lib/types";
+import { DraftOut, RejectedDraftOut } from "@/lib/types";
 import { useLocale } from "@/lib/i18n";
 
 const REASON_TAGS = ["tone", "inaccurate", "off-brand", "repetitive", "sensitive", "weak-insight"];
+
+function isRejected(d: DraftOut | RejectedDraftOut): d is RejectedDraftOut {
+  return d.status === "rejected";
+}
 
 export default function DraftsPage() {
   return (
@@ -21,9 +25,15 @@ export default function DraftsPage() {
 
 function DraftsPageInner() {
   const { t } = useLocale();
-  const FILTERS = [
-    ["all", t("drafts.filterAll")], ["needs-review", t("drafts.filterNeedsReview")], ["linkedin_post", t("drafts.filterLinkedin")],
-    ["x", t("drafts.filterX")], ["red", t("drafts.filterRed")],
+  // Two independent axes — lifecycle status and platform — shown as separate
+  // rows instead of one flat list. Keeps the rail from overflowing/scrolling
+  // as filters are added, and groups what's actually related.
+  const STATUS_FILTERS = [
+    ["all", t("drafts.filterAll")], ["needs-review", t("drafts.filterNeedsReview")],
+    ["red", t("drafts.filterRed")], ["rejected", t("drafts.filterRejected")],
+  ] as const;
+  const PLATFORM_FILTERS = [
+    ["linkedin_post", t("drafts.filterLinkedin")], ["x", t("drafts.filterX")],
   ] as const;
 
   function reasonBanner(d: DraftOut) {
@@ -42,6 +52,7 @@ function DraftsPageInner() {
 
   const searchParams = useSearchParams();
   const [drafts, setDrafts] = useState<DraftOut[] | null>(null);
+  const [rejected, setRejected] = useState<RejectedDraftOut[] | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(searchParams.get("id"));
   const [filter, setFilter] = useState<string>("all");
   const [editing, setEditing] = useState(false);
@@ -60,18 +71,20 @@ function DraftsPageInner() {
       setSelectedId((prev) => prev && list.some((d) => d.id === prev) ? prev
         : (list.find((d) => d.status === "pending_review") || list[0])?.id || null);
     }).catch((e) => setError(String(e)));
+    api.rejectedDrafts().then((rows) => setRejected(rows as RejectedDraftOut[])).catch(() => {});
   }, []);
   useEffect(load, [load]);
 
   const filtered = useMemo(() => {
+    if (filter === "rejected") return rejected || [];
     if (!drafts) return [];
     if (filter === "all") return drafts;
     if (filter === "needs-review") return drafts.filter((d) => d.status === "pending_review");
     if (filter === "red") return drafts.filter((d) => d.approval_level === "red");
     return drafts.filter((d) => d.platform === filter);
-  }, [drafts, filter]);
+  }, [drafts, rejected, filter]);
 
-  const selected = drafts?.find((d) => d.id === selectedId) || null;
+  const selected = drafts?.find((d) => d.id === selectedId) || rejected?.find((d) => d.id === selectedId) || null;
   const total = drafts?.length ?? 0;
   const reviewed = drafts?.filter((d) => d.status !== "pending_review").length ?? 0;
   const pct = total ? Math.round((reviewed / total) * 100) : 0;
@@ -146,7 +159,7 @@ function DraftsPageInner() {
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (!selected || editing || rejecting) return;
+      if (!selected || editing || rejecting || isRejected(selected)) return;
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.key === "a" || e.key === "A") handleApprove();
       else if (e.key === "e" || e.key === "E") { setEditing(true); setEditBody(selected.body); }
@@ -169,14 +182,22 @@ function DraftsPageInner() {
             <div className="progress-track"><div className="progress-fill" style={{ width: `${pct}%` }} /></div>
           </div>
           <div className="rail-tabs">
-            {FILTERS.map(([k, l]) => (
-              <button key={k} className={`chip ${filter === k ? "selected" : ""}`} onClick={() => setFilter(k)}>{l}</button>
-            ))}
+            <div className="rail-tabs-row">
+              {STATUS_FILTERS.map(([k, l]) => (
+                <button key={k} className={`chip ${filter === k ? "selected" : ""}`} onClick={() => setFilter(k)}>{l}</button>
+              ))}
+            </div>
+            <div className="rail-tabs-row">
+              {PLATFORM_FILTERS.map(([k, l]) => (
+                <button key={k} className={`chip ${filter === k ? "selected" : ""}`} onClick={() => setFilter(k)}>{l}</button>
+              ))}
+            </div>
           </div>
           <div className="rail-list">
-            {!drafts && <p style={{ padding: 12, color: "var(--muted)" }}>{t("drafts.loading")}</p>}
-            {drafts && filtered.length === 0 && (
-              <div className="empty"><DraftsIcon /><h3>{t("drafts.nothingHere")}</h3><p>{t("drafts.noMatchFilter")}</p></div>
+            {!(filter === "rejected" ? rejected : drafts) && <p style={{ padding: 12, color: "var(--muted)" }}>{t("drafts.loading")}</p>}
+            {(filter === "rejected" ? rejected : drafts) && filtered.length === 0 && (
+              <div className="empty"><DraftsIcon /><h3>{t("drafts.nothingHere")}</h3>
+                <p>{filter === "rejected" ? t("drafts.noRejected") : t("drafts.noMatchFilter")}</p></div>
             )}
             {filtered.map((d) => (
               <div key={d.id} className={`draft-card ${d.id === selectedId ? "active" : ""}`}
@@ -222,9 +243,21 @@ function DraftsPageInner() {
                   <ScoreBadge score={selected.relevance} />
                 </div>
 
-                {selected.status !== "pending_review" && (
+                {selected.status !== "pending_review" && selected.status !== "rejected" && (
                   <div className="reason-banner green" style={{ marginTop: 12 }}>
                     <div><b>{selected.status === "approved" ? t("drafts.approved") : selected.status}</b></div>
+                  </div>
+                )}
+
+                {isRejected(selected) && (
+                  <div className="reason-banner red" style={{ marginTop: 12 }}>
+                    <div>
+                      <b>{selected.rejected_at ? t("drafts.rejectedOn", { when: new Date(selected.rejected_at).toLocaleString() }) : t("drafts.reviewed")}</b>
+                      <br />
+                      {selected.reason_tags.includes("regenerated")
+                        ? t("drafts.rejectedByRegenerate")
+                        : (selected.comment || (selected.reason_tags.length ? selected.reason_tags.join(", ") : t("drafts.noReasonGiven")))}
+                    </div>
                   </div>
                 )}
 
@@ -301,37 +334,43 @@ function DraftsPageInner() {
               </div>
 
               <div className="action-bar">
-                {selected.status === "pending_review" ? (
-                  selected.approval_level === "red" && !confirmingRed ? (
-                    <button className="btn btn-danger" onClick={() => setConfirmingRed(true)}>{t("drafts.requiresSignoff")}</button>
-                  ) : (
-                    <button className="btn btn-primary" disabled={busy} onClick={() => handleApprove()}>
-                      <span className="kbd" style={{ background: "rgba(255,255,255,.2)", borderColor: "transparent", color: "inherit" }}>A</span> {t("drafts.approve")}
-                    </button>
-                  )
-                ) : selected.status === "approved" ? (
-                  <button className="btn btn-primary" disabled={busy} onClick={handlePublish}>{t("drafts.publishNow")}</button>
-                ) : selected.status === "scheduled" ? (
-                  <button className="btn" disabled>{t("drafts.scheduledManual")}</button>
-                ) : selected.status === "posted" ? (
-                  <button className="btn" disabled>{t("drafts.published")}{selected.external_id ? ` · ${selected.external_id}` : ""}</button>
-                ) : selected.status === "failed" ? (
-                  <button className="btn btn-danger" disabled={busy} onClick={handlePublish}>{t("drafts.publishFailedRetry")}</button>
+                {isRejected(selected) ? (
+                  <button className="btn btn-ghost" disabled={busy} onClick={handleRegenerate}><RefreshIcon /> {t("drafts.regenerate")}</button>
                 ) : (
-                  <button className="btn" disabled>{t("drafts.reviewed")}</button>
+                  <>
+                    {selected.status === "pending_review" ? (
+                      selected.approval_level === "red" && !confirmingRed ? (
+                        <button className="btn btn-danger" onClick={() => setConfirmingRed(true)}>{t("drafts.requiresSignoff")}</button>
+                      ) : (
+                        <button className="btn btn-primary" disabled={busy} onClick={() => handleApprove()}>
+                          <span className="kbd" style={{ background: "rgba(255,255,255,.2)", borderColor: "transparent", color: "inherit" }}>A</span> {t("drafts.approve")}
+                        </button>
+                      )
+                    ) : selected.status === "approved" ? (
+                      <button className="btn btn-primary" disabled={busy} onClick={handlePublish}>{t("drafts.publishNow")}</button>
+                    ) : selected.status === "scheduled" ? (
+                      <button className="btn" disabled>{t("drafts.scheduledManual")}</button>
+                    ) : selected.status === "posted" ? (
+                      <button className="btn" disabled>{t("drafts.published")}{selected.external_id ? ` · ${selected.external_id}` : ""}</button>
+                    ) : selected.status === "failed" ? (
+                      <button className="btn btn-danger" disabled={busy} onClick={handlePublish}>{t("drafts.publishFailedRetry")}</button>
+                    ) : (
+                      <button className="btn" disabled>{t("drafts.reviewed")}</button>
+                    )}
+                    <button className="btn btn-ghost" onClick={() => { setEditing((v) => !v); setEditBody(selected.body); }}>
+                      <span className="kbd">E</span> {editing ? t("drafts.cancelEdit") : t("common.edit")}
+                    </button>
+                    {editing && <button className="btn btn-primary" disabled={busy} onClick={handleSaveApprove}>{t("drafts.saveApprove")}</button>}
+                    <button className="btn btn-ghost" onClick={() => setRejecting(true)}><span className="kbd">R</span> {t("drafts.reject")}</button>
+                    <button className="btn btn-ghost" disabled={busy} onClick={handleRegenerate}><RefreshIcon /> {t("drafts.regenerate")}</button>
+                    <div className="kbd-legend">
+                      <span><span className="kbd">A</span>{t("drafts.kbdApprove")}</span>
+                      <span><span className="kbd">E</span>{t("drafts.kbdEdit")}</span>
+                      <span><span className="kbd">R</span>{t("drafts.kbdReject")}</span>
+                      <span><span className="kbd">N</span>{t("drafts.kbdNext")}</span>
+                    </div>
+                  </>
                 )}
-                <button className="btn btn-ghost" onClick={() => { setEditing((v) => !v); setEditBody(selected.body); }}>
-                  <span className="kbd">E</span> {editing ? t("drafts.cancelEdit") : t("common.edit")}
-                </button>
-                {editing && <button className="btn btn-primary" disabled={busy} onClick={handleSaveApprove}>{t("drafts.saveApprove")}</button>}
-                <button className="btn btn-ghost" onClick={() => setRejecting(true)}><span className="kbd">R</span> {t("drafts.reject")}</button>
-                <button className="btn btn-ghost" disabled={busy} onClick={handleRegenerate}><RefreshIcon /> {t("drafts.regenerate")}</button>
-                <div className="kbd-legend">
-                  <span><span className="kbd">A</span>{t("drafts.kbdApprove")}</span>
-                  <span><span className="kbd">E</span>{t("drafts.kbdEdit")}</span>
-                  <span><span className="kbd">R</span>{t("drafts.kbdReject")}</span>
-                  <span><span className="kbd">N</span>{t("drafts.kbdNext")}</span>
-                </div>
               </div>
             </>
           )}

@@ -93,9 +93,19 @@ def test_pillars_reflect_real_target_share_and_multiplier(client, db_session, pe
 
 def test_pillar_target_share_can_be_updated(client, db_session, persona):
     _seed_persona(db_session, persona)
+    # free up room first — the seeded mix already sums to 100%, so raising one
+    # pillar requires lowering another (see the 100%-total test below).
+    client.patch("/settings/pillars/investment", headers=HEADERS, json={"target_share": 0.0})
     resp = client.patch("/settings/pillars/ai_technology", headers=HEADERS, json={"target_share": 0.35})
     assert resp.status_code == 200
     assert resp.json()["target_share"] == 0.35
+
+
+def test_pillar_target_share_rejected_if_it_would_exceed_100_percent(client, db_session, persona):
+    _seed_persona(db_session, persona)  # seeded mix already sums to 100%
+    resp = client.patch("/settings/pillars/ai_technology", headers=HEADERS, json={"target_share": 0.35})
+    assert resp.status_code == 400
+    assert "105%" in resp.json()["detail"]
 
 
 def test_pillar_target_share_rejects_out_of_range(client, db_session, persona):

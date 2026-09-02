@@ -39,3 +39,6 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
 export async function PATCH(req: NextRequest, { params }: RouteContext) {
   return forward(req, (await params).path);
 }
+export async function DELETE(req: NextRequest, { params }: RouteContext) {
+  return forward(req, (await params).path);
+}

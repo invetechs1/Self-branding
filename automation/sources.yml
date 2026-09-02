@@ -13,10 +13,17 @@ feeds:
   # ── السعودية والخليج ──
   - {name: "Arab News — Business", url: "https://www.arabnews.com/cat/6/rss.xml", type: major_international_publication, region: saudi_arabia}
   - {name: "Saudi Gazette", url: "https://saudigazette.com.sa/rssFeed/74", type: industry_publication, region: saudi_arabia}
-  - {name: "Argaam English", url: "https://www.argaam.com/en/rss", type: industry_publication, region: saudi_arabia}
+  # كان هذا الرابط يشير لصفحة قوائم الخلاصات (HTML) لا خلاصة فعلية — لم يعمل قط، أُصلح هنا.
+  - {name: "Argaam English", url: "https://www.argaam.com/en/rss/ho-main-news?sectionid=1524", type: industry_publication, region: saudi_arabia}
   - {name: "Zawya MENA", url: "https://www.zawya.com/en/rss", type: industry_publication, region: gcc}
   - {name: "Wamda — MENA Startups", url: "https://www.wamda.com/feed", type: industry_publication, region: gcc}
   - {name: "Construction Week Middle East", url: "https://www.constructionweekonline.com/rss", type: industry_publication, region: gcc}
+
+  # ── مصادر عربية (بطلب العميل) — أخبار اقتصاد/أعمال/تقنية بالعربية ──
+  - {name: "أرقام — آخر الأخبار", url: "https://www.argaam.com/ar/rss/ho-main-news?sectionid=1523", type: industry_publication, region: saudi_arabia}
+  - {name: "جريدة المدينة", url: "https://al-madina.com/rssFeed/193", type: industry_publication, region: saudi_arabia}
+  - {name: "جريدة الوطن", url: "https://alwatan.com.sa/rssFeed/45", type: industry_publication, region: saudi_arabia}
+  - {name: "جريدة عكاظ", url: "https://okaz.com.sa/rssFeed/190", type: industry_publication, region: saudi_arabia}
 
   # ── الإنشاءات والهندسة (ConTech / BIM) ──
   - {name: "Construction Dive", url: "https://www.constructiondive.com/feeds/news/", type: industry_publication, region: united_states}
