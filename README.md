@@ -54,7 +54,7 @@
 4. جهّز مفاتيح الـ API (انظر `automation/README.md`).
 5. شغّل:
    ```bash
-   python automation/persona.py --self-test        # فحص منطق النظام (بلا مفاتيح)
+   python automation/tests/run_tests.py            # اختبار النظام كاملاً (73 فحصاً، بلا مفاتيح)
    python automation/news_engine.py --discover     # اكتشاف وترتيب أخبار اليوم
    python automation/generate_posts.py --from-news # مسودات موسومة بمستوى الاعتماد
    ```

@@ -58,7 +58,11 @@ def engagement_rate(row: dict) -> float:
 
 
 def read_csv(path: Path) -> list:
-    return list(csv.DictReader(path.open(encoding="utf-8"))) if path.exists() else []
+    """يقرأ CSV متجاهلاً أسطر التعليق (#) في أعلى الملف."""
+    if not path.exists():
+        return []
+    lines = [ln for ln in path.read_text(encoding="utf-8").splitlines() if not ln.lstrip().startswith("#")]
+    return list(csv.DictReader(lines))
 
 
 def performance_by_pillar(perf: list) -> dict:

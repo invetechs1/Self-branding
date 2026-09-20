@@ -39,6 +39,7 @@
 | `feedback.py` | التعلّم من الأداء ومن قرارات يحيى |
 | `sources.yml` | مصادر الأخبار ودرجة مصداقية كل مصدر |
 | `learning/weights.yml` | مضاعِفات الأعمدة — تُولَّد آلياً |
+| `tests/run_tests.py` | اختبار شامل (73 فحصاً) للمسار كاملاً — بلا مفاتيح وبلا شبكة خارجية |
 
 ## التشغيل
 
@@ -46,7 +47,8 @@
 pip install -r requirements.txt
 cp config.example.yml config.yml     # وعبّئ المفاتيح — لا يُرفع إلى git أبداً
 
-python persona.py --self-test                 # فحص منطق الترتيب والسلامة (بلا مفاتيح)
+python tests/run_tests.py                     # الاختبار الشامل للنظام (73 فحصاً)
+python persona.py --self-test                 # فحص سريع لمنطق الترتيب والسلامة
 python news_engine.py --check-sources         # فحص روابط المصادر
 python news_engine.py --discover              # دورة اكتشاف وترتيب (بلا مفاتيح كذلك)
 python news_engine.py --top 10                # أهم القصص المخزّنة
@@ -58,6 +60,10 @@ python feedback.py --learn                    # تحديث أوزان التعل
 ```
 
 `news_engine.py` و`persona.py` يعملان بلا أي مفاتيح — التوليد وحده يحتاج مفتاح Anthropic.
+
+الاختبار الشامل يشغّل المسار الحقيقي كاملاً (جلب RSS من خادم محلي، ترتيب، تجميع، توليد، بوابة اعتماد،
+نشر تجريبي، تعلّم، تقرير) ويستبدل استدعاء Claude API فقط. يُعاد تشغيله آلياً عند كل دفع إلى GitHub
+عبر `.github/workflows/tests.yml`.
 
 ## بوابة الاعتماد (§37 من المواصفة)
 
