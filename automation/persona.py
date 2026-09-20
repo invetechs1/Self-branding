@@ -54,6 +54,14 @@ PILLAR_TERMS = {
 _AR_NORMALIZE = str.maketrans({"أ": "ا", "إ": "ا", "آ": "ا", "ى": "ي", "ة": "ه", "ـ": ""})
 
 
+def rel(path: Path) -> str:
+    """مسار للعرض نسبةً لجذر المستودع — وبالمسار الكامل إن كان خارجه (اختبار/مجلد مخصص)."""
+    try:
+        return str(Path(path).relative_to(ROOT))
+    except ValueError:
+        return str(path)
+
+
 def normalize(text: str) -> str:
     """تطبيع نص عربي/إنجليزي للمطابقة: حروف صغيرة، بلا تشكيل، ألف/ياء/تاء موحّدة."""
     text = unicodedata.normalize("NFKC", text or "").lower()

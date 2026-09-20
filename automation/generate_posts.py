@@ -24,7 +24,7 @@ import anthropic
 import yaml
 
 from persona import (build_system_prompt, classify_approval, cluster_stories, is_repeat,
-                     load_facts, load_learning, load_persona, mix_deficit, score_story)
+                     load_facts, load_learning, load_persona, mix_deficit, rel, score_story)
 import news_engine
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -295,7 +295,7 @@ def main() -> None:
     levels = {}
     for r in rows:
         levels[r["approval_level"]] = levels.get(r["approval_level"], 0) + 1
-    print(f"\nأُضيفت {len(rows)} مسودة إلى {QUEUE.relative_to(ROOT)} — "
+    print(f"\nأُضيفت {len(rows)} مسودة إلى {rel(QUEUE)} — "
           + "، ".join(f"{k}: {v}" for k, v in levels.items()))
     print("راجعها بصوتك، ثم غيّر status إلى approved. الأحمر لا يُنشر إلا باعتماد يدوي صريح.")
 

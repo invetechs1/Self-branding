@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel>
+  <title>Global Tech Daily (fixture)</title>
+  <link>http://127.0.0.1/tech</link>
+  <description>Test fixture standing in for a major international technology publication</description>
+  <item>
+    <title>PIF backs AI construction monitoring startup in Riyadh with $40m round</title>
+    <link>http://127.0.0.1/tech/pif-contech-round</link>
+    <description>Contractors adopting computer vision for site progress under Vision 2030. The startup
+    plans to expand across the GCC.</description>
+    <pubDate>{{DATE_4H}}</pubDate>
+  </item>
+  <item>
+    <title>Enterprise ERP vendors add AI agents to finance and procurement workflows</title>
+    <link>http://127.0.0.1/tech/erp-ai-agents</link>
+    <description>Automation of cash flow forecasting, approvals and purchase order matching is
+    becoming a standard ERP feature, changing how mid-sized companies run finance operations.</description>
+    <pubDate>{{DATE_26H}}</pubDate>
+  </item>
+  <item>
+    <title>Riyadh housing demand pushes residential development and land prices higher</title>
+    <link>http://127.0.0.1/tech/riyadh-housing</link>
+    <description>Mortgage volumes and REIT activity rose, with developers reporting faster sales
+    cycles on mid-market residential projects.</description>
+    <pubDate>{{DATE_40H}}</pubDate>
+  </item>
+  <item>
+    <title>Local cafe chain launches new seasonal beverage line</title>
+    <link>http://127.0.0.1/tech/cafe</link>
+    <description>A limited edition drink range arrives in stores this month.</description>
+    <pubDate>{{DATE_1H}}</pubDate>
+  </item>
+</channel></rss>

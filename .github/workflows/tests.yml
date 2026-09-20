@@ -1,0 +1,28 @@
+# اختبار النظام الكامل عند كل دفع — بلا مفاتيح API وبلا شبكة خارجية.
+# يشغّل المسار الحقيقي كاملاً عبر خادم تغذيات محلي، ويستبدل استدعاء النموذج فقط.
+
+name: tests
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch: {}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r automation/requirements.txt
+
+      - name: Scoring and safety self-test
+        run: python automation/persona.py --self-test
+
+      - name: Full end-to-end system test
+        run: python automation/tests/run_tests.py

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel>
+  <title>ConTech Weekly (fixture)</title>
+  <link>http://127.0.0.1/contech</link>
+  <description>Test fixture standing in for a construction technology trade publication</description>
+  <item>
+    <title>PIF-backed startup raises $40 million for AI construction monitoring in Riyadh</title>
+    <link>http://127.0.0.1/contech/ai-monitoring-funding</link>
+    <description>The company uses computer vision to compare site progress against BIM models,
+    automating progress tracking for contractors. The round values the company at $180 million.</description>
+    <pubDate>{{DATE_3H}}</pubDate>
+  </item>
+  <item>
+    <title>Reality capture and digital twin adoption accelerates among large contractors</title>
+    <link>http://127.0.0.1/contech/reality-capture</link>
+    <description>Laser scanning and drone inspection are moving from pilot projects to standard
+    practice, with measurable productivity gains reported on large infrastructure works.</description>
+    <pubDate>{{DATE_20H}}</pubDate>
+  </item>
+  <item>
+    <title>Construction robotics vendor signs deal with major contractor for automated layout</title>
+    <link>http://127.0.0.1/contech/robotics-deal</link>
+    <description>The deal covers automated layout and quantity takeoff across twelve active projects.</description>
+    <pubDate>{{DATE_30H}}</pubDate>
+  </item>
+</channel></rss>

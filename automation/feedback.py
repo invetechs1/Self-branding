@@ -26,7 +26,7 @@ from pathlib import Path
 
 import yaml
 
-from persona import load_persona
+from persona import load_persona, rel
 
 ROOT = Path(__file__).resolve().parent.parent
 PERF = ROOT / "analytics" / "performance.csv"
@@ -156,7 +156,7 @@ def learn(args) -> None:
               "الأوزان تدخل تلقائياً في ترتيب الأخبار عبر `persona.score_story`.*"]
     REPORT.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
-    print(f"الأوزان: {WEIGHTS.relative_to(ROOT)} | التقرير: {REPORT.relative_to(ROOT)}")
+    print(f"الأوزان: {rel(WEIGHTS)} | التقرير: {rel(REPORT)}")
     for p, d in ranked:
         print(f"  {d['multiplier']:.2f}×  {p:26} {d['why']}")
 

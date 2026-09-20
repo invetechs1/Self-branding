@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel>
+  <title>Saudi Official Wire (fixture)</title>
+  <link>http://127.0.0.1/saudi</link>
+  <description>Test fixture standing in for an official government source</description>
+  <item>
+    <title>Saudi Arabia mandates BIM for all government infrastructure projects from 2027</title>
+    <link>http://127.0.0.1/saudi/bim-mandate</link>
+    <description>The requirement applies to contractors and engineering consultancies bidding on public
+    infrastructure works, and is tied to Vision 2030 digital transformation targets. Officials said the
+    mandate is expected to improve project productivity and reduce cost overruns.</description>
+    <pubDate>{{DATE_5H}}</pubDate>
+  </item>
+  <item>
+    <title>Public Investment Fund launches $2 billion data center programme in Riyadh</title>
+    <link>http://127.0.0.1/saudi/pif-data-centers</link>
+    <description>The programme targets AI compute capacity for enterprise and government workloads,
+    with construction of the first facilities beginning next year.</description>
+    <pubDate>{{DATE_9H}}</pubDate>
+  </item>
+  <item>
+    <title>Ministry announces new public holiday arrangements for government employees</title>
+    <link>http://127.0.0.1/saudi/holiday</link>
+    <description>Administrative announcement regarding leave scheduling.</description>
+    <pubDate>{{DATE_2H}}</pubDate>
+  </item>
+</channel></rss>

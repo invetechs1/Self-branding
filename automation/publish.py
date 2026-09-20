@@ -20,14 +20,21 @@ from zoneinfo import ZoneInfo
 
 import yaml
 
+from persona import rel
+
 ROOT = Path(__file__).resolve().parent.parent
 QUEUE = ROOT / "automation" / "queue" / "queue.csv"
 
 
+TERMINAL_STATUSES = ("posted", "manual", "skip", "error", "rejected")
+
+
 def publishable(row: dict, settings: dict) -> tuple[bool, str]:
-    """§37: من يُسمح بنشره الآن؟"""
+    """§37: من يُسمح بنشره الآن؟ الدالة وحدها تحسم القرار — لا تعتمد على فحص المتصل."""
     level = (row.get("approval_level") or "yellow").lower()
     status = row.get("status", "")
+    if status in TERMINAL_STATUSES:
+        return False, f"مُعالج سابقاً ({status})"
     if status == "approved":
         return True, ""
     if level == "green" and settings.get("auto_publish_green") and not settings.get("require_approval", True):
@@ -96,7 +103,7 @@ def post_article(cfg, content):
     out = ROOT / "site" / "articles" / f"{slug}.md"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(content, encoding="utf-8")
-    return "posted", f"حُفظ في {out.relative_to(ROOT)} — ادفعه مع الموقع"
+    return "posted", f"حُفظ في {rel(out)} — ادفعه مع الموقع"
 
 
 PUBLISHERS = {
@@ -127,8 +134,6 @@ def main():
     changed = False
 
     for row in rows:
-        if row["status"] in ("posted", "manual", "skip", "error"):
-            continue
         allowed, why = publishable(row, settings)
         if not allowed:
             continue

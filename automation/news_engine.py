@@ -26,7 +26,7 @@ from pathlib import Path
 import yaml
 
 from persona import (Story, cluster_stories, detect_opportunities, detect_trends,
-                     load_learning, load_persona, score_story)
+                     load_learning, load_persona, rel, score_story)
 
 ROOT = Path(__file__).resolve().parent.parent
 SOURCES = ROOT / "automation" / "sources.yml"
@@ -138,7 +138,7 @@ def discover(args) -> None:
               f" · ثقة الحقائق: {c['fact_confidence']}"
               + (f" · فرص: {', '.join(o['label'] for o in p.meta.get('opportunities', []))}"
                  if p.meta.get("opportunities") else ""))
-    print(f"\nالسجل: {NEWS_FILE.relative_to(ROOT)} ({len(allstories)} قصة)")
+    print(f"\nالسجل: {rel(NEWS_FILE)} ({len(allstories)} قصة)")
     print("الخطوة التالية: python automation/generate_posts.py --from-news")
 
 
@@ -210,7 +210,7 @@ def weekly_report(args) -> None:
 ---
 *وُلّد آلياً بواسطة `automation/news_engine.py --report`. راجع قبل الاعتماد.*
 """, encoding="utf-8")
-    print(f"التقرير: {path.relative_to(ROOT)}")
+    print(f"التقرير: {rel(path)}")
 
 
 def check_sources(args) -> None:
