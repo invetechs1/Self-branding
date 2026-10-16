@@ -18,8 +18,22 @@ instagram:
   ig_user_id: ""
 
 tiktok:
-  # TikTok Content Posting API
-  access_token: ""
+  # TikTok Content Posting API — راجع automation/README.md § ربط تيك توك
+  # 1) أنشئ تطبيقاً على developers.tiktok.com واطلب منتج Content Posting API
+  # 2) فعّل الصلاحيات: user.info.basic + video.upload  (و video.publish للنشر المباشر)
+  # 3) سجّل رابط التحويل أدناه نفسه في إعدادات التطبيق
+  # 4) شغّل: python automation/tiktok_auth.py   (يملأ access_token و refresh_token تلقائياً)
+  client_key: ""
+  client_secret: ""
+  redirect_uri: "http://127.0.0.1:8721/callback"
+  access_token: ""        # يُملأ ويُجدَّد تلقائياً (صالح 24 ساعة)
+  refresh_token: ""       # يُملأ تلقائياً (صالح سنة)
+  mode: "inbox"           # inbox = يصل إلى مسودات تطبيقك فتنشره بنفسك (بلا تدقيق)
+                          # direct = نشر مباشر (يتطلب تدقيق تيك توك للتطبيق)
+  privacy_level: "SELF_ONLY"   # للنشر المباشر: SELF_ONLY قبل التدقيق، ثم PUBLIC_TO_EVERYONE
+  disable_comment: false
+  disable_duet: false
+  disable_stitch: false
 
 linkedin:
   access_token: ""

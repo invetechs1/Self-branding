@@ -34,6 +34,12 @@ jobs:
           linkedin:
             access_token: "${{ secrets.LINKEDIN_ACCESS_TOKEN }}"
             person_urn: "${{ secrets.LINKEDIN_PERSON_URN }}"
+          tiktok:
+            client_key: "${{ secrets.TIKTOK_CLIENT_KEY }}"
+            client_secret: "${{ secrets.TIKTOK_CLIENT_SECRET }}"
+            refresh_token: "${{ secrets.TIKTOK_REFRESH_TOKEN }}"
+            redirect_uri: "${{ secrets.TIKTOK_REDIRECT_URI }}"
+            mode: "inbox"
           settings: {timezone: "Asia/Riyadh", require_approval: true, auto_publish_green: false}
           EOF
 

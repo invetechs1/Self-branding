@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import csv
 import http.server
+import json
 import re
 import shutil
 import socketserver
@@ -24,6 +25,7 @@ import sys
 import tempfile
 import threading
 import types
+import urllib.parse
 from datetime import datetime, timedelta, timezone
 from email.utils import format_datetime
 from pathlib import Path
@@ -68,6 +70,77 @@ class FeedServer:
     @property
     def base(self) -> str:
         return f"http://127.0.0.1:{self.port}"
+
+    def stop(self) -> None:
+        self.httpd.shutdown()
+        self.httpd.server_close()
+
+
+class TikTokMock:
+    """يحاكي Content Posting API: init → رابط رفع → PUT → حالة النشر."""
+
+    def __init__(self):
+        self.calls: list = []
+        self.uploaded = b""
+        outer = self
+
+        class H(http.server.BaseHTTPRequestHandler):
+            def log_message(self, *a):
+                pass
+
+            def _json(self, code, body):
+                raw = json.dumps(body).encode()
+                self.send_response(code)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(raw)))
+                self.end_headers()
+                self.wfile.write(raw)
+
+            def do_PUT(self):            # رفع بايتات الفيديو
+                n = int(self.headers.get("Content-Length", 0))
+                outer.uploaded += self.rfile.read(n)
+                outer.calls.append(("PUT", self.path, self.headers.get("Content-Range")))
+                self.send_response(201)
+                self.end_headers()
+
+            def do_POST(self):
+                n = int(self.headers.get("Content-Length", 0))
+                raw = self.rfile.read(n).decode() if n else ""
+                try:
+                    body = json.loads(raw)
+                except json.JSONDecodeError:
+                    body = {k: v[0] for k, v in urllib.parse.parse_qs(raw).items()}
+                outer.calls.append(("POST", self.path, body,
+                                    self.headers.get("Authorization", "")))
+                ok = {"code": "ok", "message": "", "log_id": "test"}
+                if self.path.endswith("/oauth/token/"):
+                    self._json(200, {"access_token": "NEW_ACCESS", "refresh_token": "NEW_REFRESH",
+                                     "expires_in": 86400, "scope": "video.upload"})
+                elif self.path.endswith("/creator_info/query/"):
+                    self._json(200, {"data": {"creator_username": "yahya",
+                                              "max_video_post_duration_sec": 600,
+                                              "privacy_level_options": ["SELF_ONLY", "PUBLIC_TO_EVERYONE"]},
+                                     "error": ok})
+                elif self.path.endswith("/video/init/"):
+                    self._json(200, {"data": {"publish_id": "v_pub_7788",
+                                              "upload_url": f"{outer.base}/upload/7788"},
+                                     "error": ok})
+                elif self.path.endswith("/status/fetch/"):
+                    self._json(200, {"data": {"status": "PUBLISH_COMPLETE"}, "error": ok})
+                else:
+                    self._json(404, {"error": {"code": "not_found", "message": self.path}})
+
+        self.httpd = socketserver.TCPServer(("127.0.0.1", 0), H)
+        self.httpd.allow_reuse_address = True
+        self.port = self.httpd.server_address[1]
+        threading.Thread(target=self.httpd.serve_forever, daemon=True).start()
+
+    @property
+    def base(self) -> str:
+        return f"http://127.0.0.1:{self.port}"
+
+    def paths(self) -> list:
+        return [c[1] for c in self.calls]
 
     def stop(self) -> None:
         self.httpd.shutdown()
@@ -381,6 +454,72 @@ def test_weekly_report(tmp: Path) -> None:
         check(f"بند التقرير: {heading}", heading in text)
 
 
+def test_tiktok(tmp: Path) -> None:
+    section("8) تيك توك: الكابشن، ورفع الفيديو، وتجديد الرمز")
+    import tiktok as tk
+    import publish
+
+    check("الكابشن يُقرأ من سطر (الكابشن:)",
+          tk.extract_caption("[خطّاف] كلام\nمحتوى\nالكابشن: نسبة الإنجاز ليست تقديراً")
+          == "نسبة الإنجاز ليست تقديراً")
+    check("وإلا يُؤخذ الخطّاف بعد تنظيف الأقواس",
+          tk.extract_caption("[خطّاف 3 ثوان] أكثر رقم نخدع فيه أنفسنا في المقاولات\nثم المحتوى")
+          .startswith("أكثر رقم"))
+    check("عمود caption يتقدّم على الاستخراج",
+          tk.caption_for({"caption": "كابشن يدوي", "content": "الكابشن: آلي"}) == "كابشن يدوي")
+    check("الملف الصغير يُرفع بجزء واحد", tk._chunks(9 * 1024 * 1024) == (9 * 1024 * 1024, 1))
+    check("الملف الكبير يُجزّأ ضمن حدود تيك توك",
+          tk._chunks(150 * 1024 * 1024)[0] <= tk.MAX_CHUNK and tk._chunks(150 * 1024 * 1024)[1] == 2)
+
+    mock = TikTokMock()
+    video = tmp / "reel.mp4"
+    payload = b"\x00\x00\x00\x18ftypmp42" + b"TESTVIDEO" * 4096
+    video.write_bytes(payload)
+    cfg = {"tiktok": {"client_key": "ck", "client_secret": "cs", "redirect_uri": "http://x",
+                      "access_token": "ACCESS", "refresh_token": "REFRESH",
+                      "mode": "inbox", "api_base": mock.base}}
+    try:
+        row = {"content": "سكربت الفيديو\nالكابشن: نسبة الإنجاز ليست تقديراً",
+               "media_path": str(video), "caption": ""}
+        status, note = publish.post_tiktok(cfg, row)
+        check("الرفع في وضع inbox ينتهي بحالة manual", status == "manual", f"{status} — {note[:60]}")
+        check("كل بايتات الفيديو وصلت", mock.uploaded == payload,
+              f"{len(mock.uploaded)}/{len(payload)} بايت")
+        check("استُدعيت نقطة inbox لا النشر المباشر",
+              any(p.endswith("/inbox/video/init/") for p in mock.paths()))
+        check("رفع البايتات تم بترويسة Content-Range",
+              any(c[0] == "PUT" and c[2] and c[2].startswith("bytes 0-") for c in mock.calls))
+        check("رمز الوصول أُرسل في الترويسة",
+              any(len(c) > 3 and c[3] == "Bearer ACCESS" for c in mock.calls))
+
+        mock.calls.clear()
+        cfg["tiktok"]["mode"] = "direct"
+        cfg["tiktok"]["privacy_level"] = "SELF_ONLY"
+        status, note = publish.post_tiktok(cfg, row)
+        init = next((c for c in mock.calls if c[1].endswith("/video/init/")), None)
+        check("النشر المباشر ينتهي بحالة posted", status == "posted", f"{status} — {note[:60]}")
+        check("النشر المباشر يرسل post_info بالخصوصية والكابشن",
+              bool(init) and init[2]["post_info"]["privacy_level"] == "SELF_ONLY"
+              and "نسبة الإنجاز" in init[2]["post_info"]["title"])
+
+        mock.calls.clear()
+        cfg["tiktok"]["access_token"] = ""
+        tk.refresh_access_token(cfg, persist=False)
+        check("تجديد الرمز يعمل بـ refresh_token", cfg["tiktok"]["access_token"] == "NEW_ACCESS")
+        check("معلومات الحساب تُقرأ", tk.creator_info(cfg).get("creator_username") == "yahya")
+        check("حالة النشر تُتابَع",
+              tk.fetch_status(cfg, "v_pub_7788").get("status") == "PUBLISH_COMPLETE")
+
+        check("بلا فيديو: الصف يبقى يدوياً بلا رفع",
+              publish.post_tiktok(cfg, {"content": "سكربت", "media_path": ""})[0] == "manual")
+        check("مسار فيديو خاطئ يُبلَّغ كخطأ لا كنجاح",
+              publish.post_tiktok(cfg, {"content": "س", "media_path": "/no/such.mp4"})[0] == "error")
+        check("حساب غير مربوط يُتخطّى بوضوح",
+              publish.post_tiktok({"tiktok": {}}, row)[0] == "skip")
+    finally:
+        mock.stop()
+
+
 def test_repo_integrity() -> None:
     section("7) سلامة المستودع والإعدادات")
     persona = P.load_persona()
@@ -398,7 +537,8 @@ def test_repo_integrity() -> None:
           not re.search(r"sk-ant-[A-Za-z0-9]{20,}", "".join(
               p.read_text(encoding="utf-8", errors="ignore")
               for p in AUTOMATION.rglob("*.py"))))
-    for script in ("persona.py", "news_engine.py", "generate_posts.py", "publish.py", "feedback.py"):
+    for script in ("persona.py", "news_engine.py", "generate_posts.py", "publish.py",
+                   "feedback.py", "tiktok.py", "tiktok_auth.py"):
         check(f"{script} يُحلَّل بلا أخطاء نحوية",
               compile((AUTOMATION / script).read_text(encoding="utf-8"), script, "exec") is not None)
 
@@ -425,6 +565,7 @@ def main() -> int:
         test_publish_gate(tmp, queue)
         test_learning(tmp, queue)
         test_weekly_report(tmp)
+        test_tiktok(tmp)
         test_repo_integrity()
     finally:
         server.stop()

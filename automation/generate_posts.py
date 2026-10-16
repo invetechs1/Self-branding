@@ -26,12 +26,16 @@ import yaml
 from persona import (build_system_prompt, classify_approval, cluster_stories, is_repeat,
                      load_facts, load_learning, load_persona, mix_deficit, rel, score_story)
 import news_engine
+import tiktok
 
 ROOT = Path(__file__).resolve().parent.parent
 QUEUE = ROOT / "automation" / "queue" / "queue.csv"
 QUEUE_FIELDS = ["id", "date", "time", "platform", "pillar", "content_type", "language",
                 "approval_level", "review_notes", "relevance", "source_url", "content",
-                "media_note", "status"]
+                "caption", "media_path", "media_note", "status"]
+
+# صيغ تحتاج ملفاً بصرياً قبل النشر (تيك توك وانستقرام ينشران وسائط لا نصاً)
+MEDIA_FORMATS = ("tiktok_script", "instagram_carousel")
 
 # إيقاع النشر الأسبوعي (اليوم: المنصات) — يطابق strategy/04
 WEEKLY_RHYTHM = {0: ["twitter_thread"], 1: ["article"], 2: ["instagram_carousel"],
@@ -93,6 +97,9 @@ def platform_spec(persona: dict, platform: str) -> str:
         parts.append("الأسلوب: " + spec["style"])
     if platform == "twitter_thread":
         parts.append("افصل بين التغريدات بسطر يحوي --- فقط.")
+    if platform in MEDIA_FORMATS:
+        parts.append("واختم بسطر مستقل يبدأ بـ (الكابشن:) يحوي كابشن النشر في أقل من 150 حرفاً "
+                     "— هو وحده ما يُنشر مع الفيديو/الصور.")
     return " | ".join(parts)
 
 
@@ -158,13 +165,18 @@ def build_row(uid: int, date, platform: str, content: str, persona: dict, *,
     if is_repeat(content, previous):
         level = "yellow" if level == "green" else level
         reasons.append("يشبه منشوراً سابقاً (§43) — غيّر الخطّاف أو الزاوية")
+    media_note = ""
+    if platform == "tiktok_script":
+        media_note = "صوّر الفيديو ثم ضع مساره في media_path ليُرفع إلى تيك توك"
+    elif platform == "instagram_carousel":
+        media_note = "صمّم الشرائح وفق قالب Canva الموحد"
     return {
         "id": uid, "date": f"{date:%Y-%m-%d}", "time": POST_TIMES.get(platform, "12:00"),
         "platform": platform, "pillar": pillar, "content_type": content_type, "language": language,
         "approval_level": level, "review_notes": " | ".join(reasons), "relevance": relevance,
         "source_url": source_url, "content": content,
-        "media_note": "صمّم البصري وفق قالب Canva الموحد"
-                      if platform in ("instagram_carousel", "tiktok_script") else "",
+        "caption": tiktok.extract_caption(content) if platform in MEDIA_FORMATS else "",
+        "media_path": "", "media_note": media_note,
         "status": "draft",
     }
 
