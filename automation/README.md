@@ -49,7 +49,7 @@
 pip install -r requirements.txt
 cp config.example.yml config.yml     # وعبّئ المفاتيح — لا يُرفع إلى git أبداً
 
-python tests/run_tests.py                     # الاختبار الشامل للنظام (73 فحصاً)
+python tests/run_tests.py                     # الاختبار الشامل للنظام (93 فحصاً)
 python persona.py --self-test                 # فحص سريع لمنطق الترتيب والسلامة
 python news_engine.py --check-sources         # فحص روابط المصادر
 python news_engine.py --discover              # دورة اكتشاف وترتيب (بلا مفاتيح كذلك)
