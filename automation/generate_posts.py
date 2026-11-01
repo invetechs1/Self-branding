@@ -27,6 +27,7 @@ from persona import (build_system_prompt, classify_approval, cluster_stories, is
                      load_facts, load_learning, load_persona, mix_deficit, rel, score_story)
 import news_engine
 import tiktok
+import calendar_sa
 
 ROOT = Path(__file__).resolve().parent.parent
 QUEUE = ROOT / "automation" / "queue" / "queue.csv"
@@ -111,6 +112,12 @@ def generate(client, model, system, user_prompt: str, max_tokens: int = 4000) ->
 
 def news_prompt(persona: dict, facts: dict, cluster: dict, platform: str, language: str) -> str:
     p = cluster["primary"]
+    note = p.meta.get("saudi_note", "")
+    saudi_rule = (
+        "هذا الخبر عالمي: لا تنقله كما هو. ابدأ من أثره على السوق السعودي تحديداً "
+        "(المقاول السعودي، النظام السعودي، كود البناء، التكلفة المحلية) وإلا فلا تكتبه."
+        if note else
+        "هذا خبر سعودي: ابقَ في تفاصيله العملية — من يتأثر، ومتى يبدأ التطبيق، وماذا يفعل المقاول الآن.")
     sources = "\n".join(f"  - {m.source} ({m.source_type}) — {m.title} :: {m.url}"
                         for m in [p] + cluster["supporting"])
     return f"""الحدث (عنقود قصة واحد — لا تكتب عنه أكثر من زاوية واحدة):
@@ -128,6 +135,9 @@ def news_prompt(persona: dict, facts: dict, cluster: dict, platform: str, langua
 {yaml.dump(facts, allow_unicode=True)}
 ```
 
+الأنشطة المرصودة: {'، '.join(p.meta.get('activities', [])) or '—'}
+ملاحظة سعودية: {note or 'خبر سعودي مباشر'}
+
 اكتب منشور "خبر + رؤية" (News + Insight) لمنصة {platform} باللغة {'العربية' if language == 'ar' else 'الإنجليزية'}.
 {platform_spec(persona, platform)}
 
@@ -138,8 +148,13 @@ def news_prompt(persona: dict, facts: dict, cluster: dict, platform: str, langua
 3. طبقة رؤية يحيى: أجب عن أحد هذه الأسئلة بوضوح — {' / '.join(persona['insight_questions'][:5])}
 4. اختم بخلاصة عملية أو سؤال ذكي (بلا عبارات تحفيزية).
 
+الجمهور: مقاولون ومهندسون ومُلّاك مشاريع في السعودية. اكتب لهم بما يمسّ عملهم اليوم:
+العقد، المستخلص، الجدول الزمني، العمالة، الغرامة، القرار الحكومي وأثره التشغيلي.
+
+{saudi_rule}
+
 ممنوع: تلخيص المقال حرفياً، اختراع رقم غير وارد أعلاه، ادعاء تجربة شخصية غير موجودة في ملف الحقائق،
-هاشتاقات غير ضرورية، تقديم التوقع كحقيقة."""
+هاشتاقات غير ضرورية، تقديم التوقع كحقيقة، وتهنئة عامة بلا فائدة."""
 
 
 def idea_prompt(persona: dict, facts: dict, idea: str, platform: str, pillar: str, language: str) -> str:
@@ -230,6 +245,66 @@ def run_from_news(args, client, model, persona, facts) -> list:
     return rows
 
 
+def occasion_prompt(persona: dict, facts: dict, occ: dict, platform: str, language: str) -> str:
+    return f"""مناسبة قادمة: {occ['name']} — بتاريخ {occ['date']:%Y-%m-%d} (بعد {occ['days_away']} يوماً).
+الزاوية المطلوبة: {occ['angle']}
+
+ملف الحقائق (المصدر الوحيد لأي معلومة شخصية):
+```yaml
+{yaml.dump(facts, allow_unicode=True)}
+```
+
+اكتب محتوى المناسبة لمنصة {platform} باللغة {'العربية' if language == 'ar' else 'الإنجليزية'}.
+{platform_spec(persona, platform)}
+
+قواعد محتوى المناسبات:
+- ممنوع التهنئة العامة («كل عام وأنتم بخير» وحدها محتوى فارغ يضرّ العلامة).
+- اربط المناسبة بتخصصك: المقاولات، المشاريع، العمالة، الهندسة، أو القرار الحكومي.
+- أعطِ القارئ شيئاً يستخدمه هذا الأسبوع: قائمة تحقق، رقم، أو درس تشغيلي.
+- التهنئة إن وُجدت تكون سطراً واحداً في النهاية لا موضوع المنشور.
+
+أخرج النص النهائي فقط."""
+
+
+def run_occasions(args, client, model, persona, facts) -> list:
+    """§المناسبات: يولّد محتوى ما حان وقته من رزنامة المناسبات السعودية."""
+    due = calendar_sa.due_now()
+    if not due:
+        upcoming = calendar_sa.upcoming(60)
+        msg = "لا مناسبة ضمن مهلتها الآن."
+        if upcoming:
+            nxt = upcoming[0]
+            msg += f" أقرب مناسبة: {nxt['name']} بعد {nxt['days_away']} يوماً."
+        sys.exit(msg)
+
+    queue = read_queue()
+    used = {r.get("source_url") for r in queue if r.get("source_url", "").startswith("occasion:")}
+    due = [o for o in due if f"occasion:{o['key']}" not in used][:args.count]
+    if not due:
+        sys.exit("كل المناسبات المستحقة لها محتوى في الطابور بالفعل.")
+
+    previous, rows = previous_contents(queue), []
+    system = build_system_prompt(persona, facts, args.language)
+    uid, start = int(datetime.now().timestamp()), datetime.now()
+
+    for occ in due:
+        print(f"\n◆ {occ['name']} — بعد {occ['days_away']} يوماً")
+        print(f"  الزاوية: {occ['angle'][:80]}")
+        for platform in args.platforms:
+            print(f"    توليد {platform} ...")
+            content = generate(client, model, system,
+                               occasion_prompt(persona, facts, occ, platform, args.language))
+            uid += 1
+            row = build_row(uid, start + timedelta(days=max(0, occ["days_away"] - 2)), platform,
+                            content, persona, pillar=occ.get("pillar", "occasions"),
+                            content_type="occasion", language=args.language,
+                            source_url=f"occasion:{occ['key']}", previous=previous)
+            rows.append(row)
+            previous.append(content)
+            print(f"      → {row['approval_level'].upper()}")
+    return rows
+
+
 def next_idea() -> str:
     bank = ROOT / "content" / "idea-bank.md"
     lines = bank.read_text(encoding="utf-8").splitlines()
@@ -279,6 +354,8 @@ def main() -> None:
     ap = argparse.ArgumentParser(description="مولّد المحتوى المدفوع بالشخصية")
     ap.add_argument("--from-news", action="store_true", help="توليد من عناقيد الأخبار المرتّبة")
     ap.add_argument("--week", action="store_true", help="توليد أسبوع من بنك الأفكار")
+    ap.add_argument("--occasions", action="store_true",
+                    help="توليد محتوى المناسبات السعودية التي حان وقتها")
     ap.add_argument("--count", type=int, default=3, help="عدد القصص في وضع الأخبار")
     ap.add_argument("--platforms", nargs="+", default=NEWS_PLATFORMS,
                     help=f"المنصات في وضع الأخبار (الافتراضي: {' '.join(NEWS_PLATFORMS)})")
@@ -286,8 +363,8 @@ def main() -> None:
     ap.add_argument("--start", help="تاريخ بداية الأسبوع YYYY-MM-DD")
     args = ap.parse_args()
 
-    if not (args.from_news or args.week):
-        ap.error("اختر --from-news أو --week")
+    if not (args.from_news or args.week or args.occasions):
+        ap.error("اختر --from-news أو --week أو --occasions")
 
     cfg, persona, facts = load_config(), load_persona(), load_facts()
     settings, news_cfg = cfg.get("settings", {}), cfg.get("news", {})
@@ -300,8 +377,12 @@ def main() -> None:
     client = anthropic.Anthropic(api_key=cfg["anthropic"]["api_key"])
     model = cfg["anthropic"].get("model", "claude-sonnet-5")
 
-    rows = run_from_news(args, client, model, persona, facts) if args.from_news \
-        else run_week(args, client, model, persona, facts)
+    if args.from_news:
+        rows = run_from_news(args, client, model, persona, facts)
+    elif args.occasions:
+        rows = run_occasions(args, client, model, persona, facts)
+    else:
+        rows = run_week(args, client, model, persona, facts)
 
     append_to_queue(rows)
     levels = {}

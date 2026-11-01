@@ -4,11 +4,12 @@
 generated_at: seed
 samples: {performance_rows: 0, queue_rows: 0}
 pillar_multipliers:
+  construction_projects: 1.0
   ai_technology: 1.0
-  entrepreneurship: 1.0
-  construction_engineering: 1.0
-  real_estate: 1.0
+  government_decisions: 1.0
+  site_quality: 1.0
   saudi_economy: 1.0
-  business_management: 1.0
-  investment: 1.0
-  leadership_lessons: 1.0
+  saudi_trends: 1.0
+  real_estate: 1.0
+  occasions: 1.0
+  business_leadership: 1.0

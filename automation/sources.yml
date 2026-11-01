@@ -1,44 +1,54 @@
-# مصادر الاكتشاف (§18) — عدّل الروابط بحرية.
-# ⚠️ تحقّق من عمل كل رابط على جهازك قبل الاعتماد عليه:
-#   python automation/news_engine.py --check-sources
-# روابط RSS تتغير مع تحديثات المواقع؛ الفاشل منها احذفه أو استبدله (مزوّد أخبار مدفوع بديل جيد).
+# مصادر الاكتشاف — سعودية عربية أولاً (§18)
 #
-# type: يحدد درجة المصداقية من profile/persona.yml → source_credibility
-#   official_government (100) · official_company (95) · major_international_publication (90)
-#   industry_publication (80) · professional_analyst (70) · social_media (55) · unknown_website (20)
+# ⚠️ روابط RSS تتغيّر وتتعطّل. تحقّق منها على جهازك قبل الاعتماد:
+#     python automation/news_engine.py --check-sources
+#   احذف الفاشل أو استبدله. المصادر التي بلا RSS مدرجة تحت manual_watch.
 #
-# القاعدة (§18): السوشيال ميديا للاكتشاف المبكر فقط — لا تُعامل كمعلومة موثّقة.
+# kind: news (افتراضي) | trend (مؤشرات بحث/تداول — إشارة لا خبر، لا تُنشر كما هي)
+# type: يحدد المصداقية من profile/persona.yml → source_credibility
 
 feeds:
-  # ── السعودية والخليج ──
-  - {name: "Arab News — Business", url: "https://www.arabnews.com/cat/6/rss.xml", type: major_international_publication, region: saudi_arabia}
-  - {name: "Saudi Gazette", url: "https://saudigazette.com.sa/rssFeed/74", type: industry_publication, region: saudi_arabia}
-  - {name: "Argaam English", url: "https://www.argaam.com/en/rss", type: industry_publication, region: saudi_arabia}
-  - {name: "Zawya MENA", url: "https://www.zawya.com/en/rss", type: industry_publication, region: gcc}
-  - {name: "Wamda — MENA Startups", url: "https://www.wamda.com/feed", type: industry_publication, region: gcc}
-  - {name: "Construction Week Middle East", url: "https://www.constructionweekonline.com/rss", type: industry_publication, region: gcc}
+  # ═══ سعودي رسمي ═══
+  - {name: "واس — وكالة الأنباء السعودية", url: "https://www.spa.gov.sa/rss.xml", type: official_government, region: saudi_arabia, lang: ar}
 
-  # ── الإنشاءات والهندسة (ConTech / BIM) ──
-  - {name: "Construction Dive", url: "https://www.constructiondive.com/feeds/news/", type: industry_publication, region: united_states}
-  - {name: "ENR", url: "https://www.enr.com/rss/all-news", type: industry_publication, region: united_states}
-  - {name: "BIM+", url: "https://www.bimplus.co.uk/feed/", type: industry_publication, region: europe}
+  # ═══ صحف واقتصاد سعودي ═══
+  - {name: "أرقام", url: "https://www.argaam.com/ar/rss", type: industry_publication, region: saudi_arabia, lang: ar}
+  - {name: "الاقتصادية", url: "https://www.aleqt.com/rss", type: industry_publication, region: saudi_arabia, lang: ar}
+  - {name: "مال", url: "https://www.maaal.com/feed", type: industry_publication, region: saudi_arabia, lang: ar}
+  - {name: "سبق", url: "https://sabq.org/rss", type: industry_publication, region: saudi_arabia, lang: ar}
+  - {name: "عاجل", url: "https://ajel.sa/rss", type: industry_publication, region: saudi_arabia, lang: ar}
+  - {name: "المواطن", url: "https://www.almowaten.net/feed/", type: industry_publication, region: saudi_arabia, lang: ar}
+  - {name: "اليوم", url: "https://www.alyaum.com/rss", type: industry_publication, region: saudi_arabia, lang: ar}
+  - {name: "العربية — أسواق", url: "https://www.alarabiya.net/.mrss/ar/aswaq.xml", type: major_international_publication, region: gcc, lang: ar}
 
-  # ── الذكاء الاصطناعي والتقنية المؤسسية ──
-  - {name: "TechCrunch", url: "https://techcrunch.com/feed/", type: major_international_publication, region: united_states}
-  - {name: "VentureBeat AI", url: "https://venturebeat.com/category/ai/feed/", type: major_international_publication, region: united_states}
-  - {name: "Crunchbase News", url: "https://news.crunchbase.com/feed/", type: industry_publication, region: united_states}
-  - {name: "Google AI Blog", url: "https://blog.google/technology/ai/rss/", type: official_company, region: global}
-  - {name: "NVIDIA Blog", url: "https://blogs.nvidia.com/feed/", type: official_company, region: global}
-  - {name: "AWS Machine Learning Blog", url: "https://aws.amazon.com/blogs/machine-learning/feed/", type: official_company, region: global}
+  # ═══ الترند السعودي (إشارات لا أخبار) ═══
+  - {name: "الأكثر بحثاً في السعودية — Google Trends", url: "https://trends.google.com/trending/rss?geo=SA", type: social_media, region: saudi_arabia, lang: ar, kind: trend}
 
-  # ── العقار واللوجستيات ──
-  - {name: "PropTech / Real Estate — Inman", url: "https://www.inman.com/feed/", type: industry_publication, region: united_states}
-  - {name: "Supply Chain Dive", url: "https://www.supplychaindive.com/feeds/news/", type: industry_publication, region: united_states}
+  # ═══ مقاولات وإنشاءات (عربي/خليجي) ═══
+  - {name: "Construction Week — الشرق الأوسط", url: "https://www.constructionweekonline.com/rss", type: industry_publication, region: gcc, lang: en}
+  - {name: "Zawya — مشاريع المنطقة", url: "https://www.zawya.com/en/rss", type: industry_publication, region: gcc, lang: en}
 
-# مصادر رسمية بلا RSS — تُتابَع يدوياً أو عبر مزوّد أخبار مدفوع (انظر docs/technical-requirements.md §5)
+  # ═══ ذكاء اصطناعي عالمي (يُربط بالسوق السعودي عند الكتابة) ═══
+  - {name: "TechCrunch", url: "https://techcrunch.com/feed/", type: major_international_publication, region: united_states, lang: en}
+  - {name: "VentureBeat AI", url: "https://venturebeat.com/category/ai/feed/", type: major_international_publication, region: united_states, lang: en}
+  - {name: "Google AI Blog", url: "https://blog.google/technology/ai/rss/", type: official_company, region: global, lang: en}
+
+  # ═══ تقنية الإنشاءات عالمياً (مرجع للمقارنة) ═══
+  - {name: "Construction Dive", url: "https://www.constructiondive.com/feeds/news/", type: industry_publication, region: united_states, lang: en}
+  - {name: "BIM+", url: "https://www.bimplus.co.uk/feed/", type: industry_publication, region: europe, lang: en}
+
+# ═══ جهات بلا RSS — تُتابَع يدوياً أو عبر كشط مجدول (انظر docs/technical-requirements.md §5) ═══
+# هذه أثمن المصادر لجمهورك: قراراتها تمسّ المقاول والموظف مباشرةً.
 manual_watch:
-  - {name: "واس — وكالة الأنباء السعودية", url: "https://www.spa.gov.sa", type: official_government}
-  - {name: "رؤية 2030", url: "https://www.vision2030.gov.sa/ar/news", type: official_government}
-  - {name: "صندوق الاستثمارات العامة", url: "https://www.pif.gov.sa/ar/news-and-insights/", type: official_government}
-  - {name: "الهيئة السعودية للمقاولين", url: "https://sca.gov.sa", type: official_government}
-  - {name: "وزارة الإسكان / سكني", url: "https://sakani.sa", type: official_government}
+  - {name: "وزارة الموارد البشرية والتنمية الاجتماعية", url: "https://hrsd.gov.sa/ar/media-center/news", type: official_government, topic: "نظام العمل · التوطين · نطاقات · قوى"}
+  - {name: "المؤسسة العامة للتأمينات الاجتماعية", url: "https://www.gosi.gov.sa/ar/News", type: official_government, topic: "الاشتراكات · التسجيل · أنظمة التأمينات"}
+  - {name: "وزارة التجارة", url: "https://mc.gov.sa/ar/mediacenter/News", type: official_government, topic: "السجل التجاري · الأنظمة التجارية · الغش"}
+  - {name: "هيئة الزكاة والضريبة والجمارك", url: "https://zatca.gov.sa/ar/MediaCenter/News", type: official_government, topic: "الفاتورة الإلكترونية · الضريبة · الجمارك"}
+  - {name: "وزارة البلديات والإسكان", url: "https://momah.gov.sa/ar/news", type: official_government, topic: "رخص البناء · الاشتراطات البلدية · الإسكان"}
+  - {name: "الهيئة السعودية للمقاولين", url: "https://sca.gov.sa/ar/news", type: official_government, topic: "تصنيف المقاولين · العقد الموحد · حماية المقاول"}
+  - {name: "كود البناء السعودي (SBC)", url: "https://sbc.gov.sa/ar/News", type: official_government, topic: "اشتراطات البناء · السلامة الإنشائية"}
+  - {name: "الهيئة السعودية للمهندسين", url: "https://www.saudieng.sa/Arabic/MediaCenter", type: official_government, topic: "تصنيف المهندسين · الممارسة المهنية"}
+  - {name: "سدايا — هيئة البيانات والذكاء الاصطناعي", url: "https://sdaia.gov.sa/ar/MediaCenter/News", type: official_government, topic: "سياسات الذكاء الاصطناعي · البيانات"}
+  - {name: "هيئة المحتوى المحلي والمشتريات الحكومية", url: "https://lcgpa.gov.sa/ar/MediaCenter", type: official_government, topic: "المحتوى المحلي · تفضيل المنتج الوطني"}
+  - {name: "منصة اعتماد", url: "https://etimad.sa", type: official_government, topic: "المنافسات الحكومية · الترسيات"}
+  - {name: "موسم الرياض / هيئة الترفيه", url: "https://riyadhseason.sa", type: official_company, topic: "المناسبات والفعاليات"}

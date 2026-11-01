@@ -26,7 +26,7 @@ import tempfile
 import threading
 import types
 import urllib.parse
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from email.utils import format_datetime
 from pathlib import Path
 
@@ -400,7 +400,7 @@ def test_learning(tmp: Path, queue: Path) -> None:
               "comments", "shares", "saves", "profile_visits", "followers_gained", "clicks", "hook"]
     rows = []
     # الإنشاءات تتفوق، العقار يضعف — بعيّنات كافية لتجاوز حد التعلّم
-    for pillar, rate, n in (("construction_engineering", 0.09, 5), ("ai_technology", 0.04, 5),
+    for pillar, rate, n in (("construction_projects", 0.09, 5), ("ai_technology", 0.04, 5),
                             ("real_estate", 0.012, 4)):
         for i in range(n):
             likes = 5000 * rate * 0.5
@@ -420,19 +420,20 @@ def test_learning(tmp: Path, queue: Path) -> None:
     F.learn(None)
 
     weights = yaml.safe_load(F.WEIGHTS.read_text(encoding="utf-8"))["pillar_multipliers"]
-    check("وزن العمود الناجح ارتفع", weights["construction_engineering"] > 1.0,
-          f"{weights['construction_engineering']}×")
+    check("وزن العمود الناجح ارتفع", weights["construction_projects"] > 1.0,
+          f"{weights['construction_projects']}×")
     check("وزن العمود الضعيف انخفض", weights["real_estate"] < 1.0, f"{weights['real_estate']}×")
-    check("العمود بلا بيانات يبقى محايداً", weights["investment"] == 1.0)
+    check("العمود بلا بيانات يبقى محايداً", weights["occasions"] == 1.0)
     check("المضاعِف محصور ضمن الحدود",
           all(F.BOUNDS[0] <= v <= F.BOUNDS[1] for v in weights.values()))
     check("تقرير التعلّم يشرح سبب كل وزن", "أداء" in F.REPORT.read_text(encoding="utf-8"))
 
     # الأثر الفعلي: الوزن الجديد يغيّر ترتيب الأخبار
     persona, now = P.load_persona(), datetime.now(timezone.utc)
-    story = P.Story(title="Contractors adopt BIM and digital twin on infrastructure projects",
-                    summary="Construction productivity study.", source_type="industry_publication",
-                    published=now)
+    # قصة متوسطة الدرجة (لا تبلغ السقف) ليظهر أثر الوزن المتعلَّم
+    story = P.Story(title="مقاولون يتبنون نماذج BIM في مشاريع البنية التحتية",
+                    summary="دراسة إنتاجية.", source_type="social_media",
+                    published=now - timedelta(hours=60))
     before = P.score_story(P.Story(**{**story.__dict__, "scores": {}, "meta": {}}), persona, now, {}).scores["total"]
     after = P.score_story(P.Story(**{**story.__dict__, "scores": {}, "meta": {}}), persona, now, weights).scores["total"]
     check("الوزن المتعلَّم يرفع ترتيب القصة فعلياً", after > before, f"{before} ← {after}")
@@ -450,7 +451,7 @@ def test_weekly_report(tmp: Path) -> None:
     check("التقرير وُلّد", len(reports) == 1)
     text = reports[0].read_text(encoding="utf-8") if reports else ""
     for heading in ("أهم 10 تطورات", "فرص محتوى", "فرص أعمال", "الاتجاهات المرصودة",
-                    "التقنية", "الإنشاءات والهندسة", "الفرصة السعودية", "الموضوع المقترح للتعمّق"):
+                    "التقنية", "المقاولات والمشاريع", "الفرصة السعودية", "القرارات الحكومية", "الموضوع المقترح للتعمّق"):
         check(f"بند التقرير: {heading}", heading in text)
 
 
@@ -520,6 +521,83 @@ def test_tiktok(tmp: Path) -> None:
         mock.stop()
 
 
+def test_saudi_first() -> None:
+    section("9) السعودية أولاً: الأنشطة الستة، والمطابقة العربية، والمناسبات")
+    import calendar_sa
+    persona, now = P.load_persona(), datetime.now(timezone.utc)
+
+    def score(title, summary="", stype="industry_publication", hours=5):
+        return P.score_story(P.Story(title=title, summary=summary, source="t", source_type=stype,
+                                     published=now - timedelta(hours=hours)), persona, now, {})
+
+    # المطابقة العربية مع السوابق واللواحق — أكثر ما كان يُفقد الأخبار السعودية
+    check("«بالرياض» تُطابق «الرياض»", P._hits(P.normalize("مشاريع بالرياض"), ["الرياض"]) != [])
+    check("«للمقاولين» تُطابق «مقاول»", P._hits(P.normalize("للمقاولين مهلة"), ["مقاول"]) != [])
+    check("«والمقاولات» تُطابق «مقاولات»", P._hits(P.normalize("والمقاولات تنمو"), ["مقاولات"]) != [])
+    check("«رياضة» لا تُطابق «الرياض»", P._hits(P.normalize("بطولة رياضة"), ["الرياض"]) == [])
+
+    gov = score("وزارة الموارد البشرية تُلزم منشآت المقاولات بتوثيق العقود عبر منصة قوى",
+                "غرامات عند المخالفة.", "official_government", 4)
+    site = score("أمانة جدة ترصد عيوب تنفيذ وتشققات في مبانٍ حديثة",
+                 "مخالفات كود البناء وسلامة العمال.")
+    tender = score("ترسية مشاريع بنية تحتية بالرياض على مقاولين محليين",
+                   "مناقصات ومستخلصات وفق العقد الموحد.")
+    global_ai = score("OpenAI launches enterprise AI agent platform", "Automation worldwide.",
+                      "major_international_publication")
+    global_ref = score("Contractors adopt BIM on infrastructure projects", "Productivity study.")
+    noise = score("Global shoe brand announces new sneaker line", "Fashion.", "unknown_website", 2)
+
+    check("قرار وزاري يُصنَّف قرارات حكومية", gov.meta["pillar"] == "government_decisions",
+          gov.meta["pillar"])
+    check("أخطاء البناء تُصنَّف عامل البناء وأخطاء البناء", site.meta["pillar"] == "site_quality")
+    check("الترسيات تُصنَّف مقاولات ومشاريع", tender.meta["pillar"] == "construction_projects")
+    check("الجهة الحكومية إشارة سعودية", gov.meta["region"] == "saudi_arabia")
+    check("الخبر السعودي يتقدم على العالمي داخل النشاط نفسه",
+          tender.scores["total"] > global_ref.scores["total"],
+          f"{tender.scores['total']} مقابل {global_ref.scores['total']}")
+    check("الذكاء الاصطناعي العالمي يبقى مطروحاً",
+          global_ai.scores["total"] >= persona["thresholds"]["pipeline_entry"],
+          f"{global_ai.scores['total']}")
+    check("وُسم بأنه يحتاج ربطاً سعودياً", "سعودي" in global_ai.meta["saudi_note"])
+    check("الضجيج العالمي يسقط", noise.scores["total"] < 20, f"{noise.scores['total']}")
+    check("الأنشطة الستة تُرصد في البيانات الوصفية", bool(gov.meta["activities"]))
+
+    # رادار الترند: إشارة لا خبر
+    trend = P.Story(title="ترند: جدل حول مهلة التوطين في المقاولات", source="trends",
+                    source_type="social_media", published=now, meta={"kind": "trend"})
+    radar = NE.trend_radar([trend], persona)
+    check("الترند المتقاطع مع أنشطتك يُرصد", radar and radar[0]["relevant"],
+          str(radar[0]["matched"]) if radar else "لا شيء")
+    off = NE.trend_radar([P.Story(title="ترند: مباراة كرة قدم", source="t",
+                                  source_type="social_media", published=now,
+                                  meta={"kind": "trend"})], persona)
+    check("الترند خارج أنشطتك يُستبعد من الاقتراح", off and not off[0]["relevant"])
+
+    # الرزنامة السعودية
+    cal = calendar_sa.load_calendar()
+    names = [o["name"] for o in cal["occasions"]]
+    check("الرزنامة تحوي اليوم الوطني ويوم التأسيس",
+          "اليوم الوطني السعودي" in names and "يوم التأسيس" in names)
+    nat = calendar_sa.upcoming(400, date(2026, 9, 1), cal)
+    hit = next((o for o in nat if o["key"] == "national_day"), None)
+    check("اليوم الوطني يُحسب في 23 سبتمبر", bool(hit) and hit["date"] == date(2026, 9, 23))
+    check("لا ينبّه قبل الأوان (22 يوماً والمهلة 14)", bool(hit) and not hit["due"],
+          f"بعد {hit['days_away']} يوماً، المهلة {hit['lead_days']}" if hit else "")
+    inside = next((o for o in calendar_sa.upcoming(400, date(2026, 9, 15), cal)
+                   if o["key"] == "national_day"), None)
+    check("وينبّه حين تدخل المهلة (قبل 8 أيام)", bool(inside) and inside["due"],
+          f"بعد {inside['days_away']} يوماً" if inside else "")
+    check("due_now يعيد المستحق فقط",
+          all(o["due"] for o in calendar_sa.due_now(date(2026, 9, 15), cal)))
+    ramadan = next((o for o in calendar_sa.upcoming(400, date(2027, 1, 1), cal)
+                    if o["key"] == "ramadan"), None)
+    check("المناسبات الهجرية تُحسب بتقويم أم القرى",
+          bool(ramadan) and ramadan["date"].year == 2027 and ramadan["date"].month == 2,
+          str(ramadan["date"]) if ramadan else "تعذّر — ثبّت hijridate")
+    check("لكل مناسبة زاوية مرتبطة بتخصصه",
+          all(o.get("angle") for o in cal["occasions"]))
+
+
 def test_repo_integrity() -> None:
     section("7) سلامة المستودع والإعدادات")
     persona = P.load_persona()
@@ -566,6 +644,7 @@ def main() -> int:
         test_learning(tmp, queue)
         test_weekly_report(tmp)
         test_tiktok(tmp)
+        test_saudi_first()
         test_repo_integrity()
     finally:
         server.stop()

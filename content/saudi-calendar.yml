@@ -1,0 +1,105 @@
+# رزنامة المناسبات السعودية — يقرؤها النظام ليقترح المحتوى قبل المناسبة لا بعدها
+# ─────────────────────────────────────────────────────────────────────────────
+# lead_days: كم يوماً قبل المناسبة يبدأ النظام باقتراح المحتوى
+# angle: الزاوية التي تربط المناسبة بتخصصك — لا تهنئة عامة، بل محتوى يضيف قيمة
+# kind: fixed (تاريخ ميلادي ثابت) | hijri (يُحسب بالتقويم الهجري) | season (موسم ممتد)
+
+occasions:
+
+  - key: founding_day
+    name: "يوم التأسيس"
+    kind: fixed
+    month: 2
+    day: 22
+    lead_days: 10
+    pillar: occasions
+    angle: "ثلاثة قرون من البناء: كيف تطوّر العمران السعودي من الطين إلى المشاريع الكبرى — وماذا يعني ذلك لمقاول اليوم"
+
+  - key: flag_day
+    name: "يوم العلم السعودي"
+    kind: fixed
+    month: 3
+    day: 11
+    lead_days: 7
+    pillar: occasions
+    angle: "الهوية في المشاريع: ماذا يعني أن يُبنى المشروع بأيدٍ وكفاءات وطنية"
+
+  - key: labour_day
+    name: "اليوم العالمي للسلامة والصحة المهنية"
+    kind: fixed
+    month: 4
+    day: 28
+    lead_days: 7
+    pillar: site_quality
+    angle: "السلامة ليست بنداً في الميزانية: أرقام الحوادث وكيف تُخفّض فعلياً في مواقع الإنشاءات"
+
+  - key: engineers_day
+    name: "اليوم العالمي للهندسة من أجل التنمية المستدامة"
+    kind: fixed
+    month: 3
+    day: 4
+    lead_days: 7
+    pillar: construction_projects
+    angle: "دور المهندس السعودي في مشاريع التحول — من المنفّذ إلى صانع القرار"
+
+  - key: national_day
+    name: "اليوم الوطني السعودي"
+    kind: fixed
+    month: 9
+    day: 23
+    lead_days: 14
+    pillar: occasions
+    angle: "ما الذي تغيّر فعلاً في قطاع المقاولات خلال السنوات الأخيرة — بالأرقام لا بالشعارات"
+
+  - key: saudi_build
+    name: "معرض البناء السعودي (Saudi Build)"
+    kind: season
+    month: 11
+    day: 1
+    window_days: 20
+    lead_days: 14
+    pillar: construction_projects
+    angle: "ما الذي يستحق المتابعة في معرض البناء هذا العام من منظور مقاول لا زائر"
+
+  - key: ramadan
+    name: "رمضان"
+    kind: hijri
+    hijri_month: 9
+    hijri_day: 1
+    lead_days: 14
+    pillar: construction_projects
+    angle: "إدارة المشاريع في رمضان: ساعات العمل المخفّضة، إنتاجية العمالة، وإعادة جدولة البنود الحرجة"
+
+  - key: eid_fitr
+    name: "عيد الفطر"
+    kind: hijri
+    hijri_month: 10
+    hijri_day: 1
+    lead_days: 7
+    pillar: occasions
+    angle: "ما قبل إجازة العيد: قائمة إغلاق الموقع — السلامة، العهد، المعدات، والمستخلصات"
+
+  - key: eid_adha
+    name: "عيد الأضحى"
+    kind: hijri
+    hijri_month: 12
+    hijri_day: 10
+    lead_days: 7
+    pillar: occasions
+    angle: "إدارة التوقف الطويل في المشاريع: كيف تحمي الجدول الزمني من إجازة ممتدة"
+
+  - key: hijri_new_year
+    name: "رأس السنة الهجرية"
+    kind: hijri
+    hijri_month: 1
+    hijri_day: 1
+    lead_days: 5
+    pillar: business_leadership
+    angle: "مراجعة سنوية لشركة مقاولات: خمسة أرقام تقررّ إن كانت سنتك ناجحة فعلاً"
+
+# مواعيد إدارية متكررة تهم جمهورك (شهرية/سنوية)
+recurring_reminders:
+  - {name: "إقرار ضريبة القيمة المضافة", cadence: "شهري/ربعي", angle: "الفاتورة الإلكترونية في المقاولات: الأخطاء التي تكلّف غرامات"}
+  - {name: "تحديث شهادة الزكاة", cadence: "سنوي", angle: "لماذا تتعطل مستخلصاتك بسبب شهادة منتهية — وكيف تسبق الموعد"}
+  - {name: "تجديد تصنيف المقاولين", cadence: "دوري", angle: "ما الذي يرفع درجة تصنيفك فعلياً: ملف المشاريع، الكوادر، والملاءة"}
+  - {name: "نسب التوطين (نطاقات)", cadence: "مستمر", angle: "حساب نسبة التوطين في شركة مقاولات دون تعطيل التنفيذ"}

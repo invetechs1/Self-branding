@@ -30,25 +30,43 @@ WEIGHTS_PATH = ROOT / "automation" / "learning" / "weights.yml"
 
 # ── ربط المصطلحات بأعمدة المحتوى (§25) ──
 PILLAR_TERMS = {
-    "ai_technology": ["artificial intelligence", "ai ", " ai", "ai agent", "enterprise ai", "llm",
-                      "machine learning", "automation", "erp", "saas", "copilot", "software",
-                      "data center", "cloud", "ذكاء اصطناعي", "أتمتة", "برمجيات", "نموذج لغوي"],
-    "construction_engineering": ["construction", "contech", "bim", "digital twin", "engineering",
-                                 "contractor", "concrete", "asphalt", "infrastructure", "project management",
-                                 "reality capture", "laser scanning", "drone", "quantity takeoff",
-                                 "إنشاءات", "مقاولات", "هندسة", "خرسانة", "بنية تحتية", "إدارة مشاريع"],
-    "real_estate": ["real estate", "proptech", "housing", "residential", "reit", "mortgage", "land price",
-                    "عقار", "إسكان", "تطوير عقاري", "تمويل عقاري"],
-    "saudi_economy": ["saudi", "vision 2030", "pif", "riyadh", "neom", "public investment fund",
-                      "السعودية", "رؤية 2030", "الرياض", "صندوق الاستثمارات"],
-    "entrepreneurship": ["startup", "founder", "entrepreneur", "bootstrapped", "product-market",
-                         "ريادة أعمال", "مؤسس", "شركة ناشئة"],
-    "investment": ["funding", "raises", "series ", "venture capital", "private equity", "ipo",
-                   "valuation", "acquisition", "استثمار", "تمويل", "استحواذ", "طرح"],
-    "business_management": ["management", "productivity", "business intelligence", "operations",
-                            "workforce", "logistics", "fleet", "supply chain",
-                            "إدارة", "إنتاجية", "تشغيل", "لوجستي", "أسطول"],
-    "leadership_lessons": ["leadership", "culture", "hiring", "lesson", "قيادة", "ثقافة", "توظيف", "درس"],
+    "construction_projects": [
+        "مقاولات", "مقاول", "مشروع إنشائي", "ترسية", "مناقصة", "منافسة", "مستخلص", "أمر تغييري",
+        "مقاول الباطن", "البنية التحتية", "خرسانة", "سفلتة", "تشطيبات", "إدارة المشاريع",
+        "هيئة المقاولين", "المشاريع الحكومية", "تأخر المشروع", "غرامة تأخير", "جدولة",
+        "contractor", "construction", "tender", "infrastructure", "project management", "contech"],
+    "ai_technology": [
+        "ذكاء اصطناعي", "نموذج لغوي", "وكيل ذكي", "أتمتة", "تعلم آلي", "سدايا", "رؤية حاسوبية",
+        "تحول رقمي", "برمجيات", "منصة رقمية", "مركز بيانات", "روبوت", "نظام ذكي",
+        "artificial intelligence", "ai agent", "llm", "automation", "machine learning", "erp",
+        "saas", "copilot", "computer vision", "data center", "digital twin", "bim"],
+    "government_decisions": [
+        "وزارة الموارد البشرية", "التأمينات الاجتماعية", "وزارة التجارة", "الزكاة والضريبة",
+        "الفاتورة الإلكترونية", "نطاقات", "السعودة", "التوطين", "مكتب العمل", "قوى", "مساند",
+        "نظام العمل", "لائحة", "قرار وزاري", "تعميم", "مجلس الوزراء", "وزارة البلديات",
+        "المحتوى المحلي", "اعتماد", "نظام المنافسات", "إلزام", "اشتراط", "اعتباراً من",
+        "regulation", "ministerial", "mandate", "compliance"],
+    "site_quality": [
+        "عامل بناء", "العمالة", "سلامة الموقع", "إصابات العمل", "السلامة المهنية", "أخطاء التنفيذ",
+        "عيوب البناء", "تشققات", "العزل", "كود البناء", "جودة التنفيذ", "الإشراف الهندسي",
+        "مخالفات البناء", "رخصة بناء", "الأمانة", "بلدي", "سقالات", "شهادة إشغال", "انهيار",
+        "building defect", "site safety", "worker safety", "building code", "inspection"],
+    "saudi_economy": [
+        "الاقتصاد السعودي", "رؤية 2030", "صندوق الاستثمارات", "الرياض", "نيوم", "المشاريع الكبرى",
+        "الناتج المحلي", "القطاع الخاص", "الاستثمار الأجنبي", "تداول", "طرح عام", "نمو",
+        "saudi economy", "vision 2030", "pif", "giga-project", "gdp", "non-oil"],
+    "saudi_trends": [
+        "ترند", "الأكثر تداولاً", "يتصدر", "وسم", "هاشتاق", "الأكثر بحثاً", "جدل", "تفاعل",
+        "حديث السوشيال", "trending", "viral"],
+    "real_estate": [
+        "عقار", "تطوير عقاري", "إسكان", "سكني", "تمويل عقاري", "أسعار الأراضي", "صندوق عقاري",
+        "الطلب على المساكن", "سكني", "ريت", "real estate", "proptech", "housing", "mortgage", "reit"],
+    "occasions": [
+        "اليوم الوطني", "يوم التأسيس", "يوم العلم", "إجازة رسمية", "عيد الفطر", "عيد الأضحى",
+        "رمضان", "موسم الرياض", "اليوم العالمي", "الاحتفال", "national day", "founding day"],
+    "business_leadership": [
+        "إدارة", "قيادة", "التوظيف", "الإنتاجية", "ثقافة العمل", "ريادة أعمال", "شركة ناشئة",
+        "تمويل", "استثمار", "استحواذ", "leadership", "management", "startup", "funding", "hiring"],
 }
 
 _AR_NORMALIZE = str.maketrans({"أ": "ا", "إ": "ا", "آ": "ا", "ى": "ي", "ة": "ه", "ـ": ""})
@@ -69,14 +87,40 @@ def normalize(text: str) -> str:
     return re.sub(r"\s+", " ", text.translate(_AR_NORMALIZE))
 
 
+# سوابق ولواحق عربية شائعة — بدونها لا تُطابق «بالرياض» كلمةَ «الرياض»
+_AR_PREFIX = r"(?:[وفبكل]{0,2}(?:ال)?)"
+_AR_SUFFIX = r"(?:ات|ين|ون|ها|هم|هن|كم|يه|يت)?"
+_AR_RANGE = "؀-ۿ"
+
+
+def _is_arabic_term(t: str) -> bool:
+    return any("؀" <= c <= "ۿ" for c in t)
+
+
+def _ar_pattern(t: str) -> str:
+    """نمط يتسامح مع السوابق واللواحق: «المقاولات» تُطابق «بالمقاولات» و«للمقاولين»."""
+    core = t[2:] if t.startswith("ال") and len(t) > 4 else t
+    return rf"(?<![{_AR_RANGE}\w]){_AR_PREFIX}{re.escape(core)}{_AR_SUFFIX}(?![{_AR_RANGE}])"
+
+
 def _hits(text: str, terms) -> list:
-    """المصطلحات الموجودة في النص (مطابقة كلمة كاملة للقصيرة، واحتواء للمركّبة)."""
+    """المصطلحات الموجودة في النص.
+
+    العربية تُطابَق بتسامح مع أدوات التعريف وحروف الجر الملتصقة (وهي أكثر ما يُفقِد المطابقة)،
+    والإنجليزية بمطابقة كلمة كاملة للقصيرة واحتواء للمركّبة.
+    """
     found = []
     for term in terms:
         t = normalize(str(term))
         if not t:
             continue
-        if " " in t or len(t) > 6:
+        if _is_arabic_term(t):
+            if " " in t:
+                if t in text:
+                    found.append(term)
+            elif re.search(_ar_pattern(t), text):
+                found.append(term)
+        elif " " in t or len(t) > 6:
             if t in text:
                 found.append(term)
         elif re.search(rf"(?<![\w؀-ۿ]){re.escape(t)}(?![\w؀-ۿ])", text):
@@ -146,13 +190,33 @@ def _interest_hits(text: str, terms, persona: dict) -> list:
     return [term for term in terms if _hits(text, [term] + list(aliases.get(term, [])))]
 
 
+def activity_hits(story: Story, persona: dict) -> list:
+    """أي من الأنشطة الستة تقع القصة داخله (الأساس السعودي للاكتشاف)."""
+    out = []
+    for key, spec in (persona.get("saudi_activities") or {}).items():
+        hits = _hits(story.text, spec.get("keywords", []))
+        if hits:
+            out.append({"key": key, "label": spec.get("label_ar", key),
+                        "pillar": spec.get("pillar", "saudi_economy"),
+                        "weight": float(spec.get("weight", 1.0)), "hits": len(hits)})
+    return sorted(out, key=lambda a: (-a["hits"] * a["weight"]))
+
+
 def personal_interest_score(story: Story, persona: dict) -> tuple[float, list]:
+    """اهتمام يحيى = خريطة الاهتمامات + أنشطته السعودية الستة (أيّهما أقوى)."""
     graph, tw = persona["interest_graph"], persona["interest_graph"]["tier_weights"]
     total, matched = 0.0, []
     for tier, weight in (("tier_1", tw["tier_1"]), ("tier_2", tw["tier_2"]), ("tier_3", tw["tier_3"])):
         hits = _interest_hits(story.text, graph[tier], persona)
         matched += hits
         total += weight * _saturate(len(hits), 3)
+
+    # النشاط المعلن اهتمامٌ صريح: خبر داخل أحد الأنشطة الستة لا يُحسب صفراً لمجرد أنه عربي
+    acts = activity_hits(story, persona)
+    if acts:
+        best = max(a["weight"] * _saturate(a["hits"], 2) for a in acts)
+        total = max(total, min(1.0, best + 0.15 * (len(acts) - 1)))
+        matched += [a["label"] for a in acts]
     return min(1.0, total), matched
 
 
@@ -174,7 +238,10 @@ def saudi_gcc_score(story: Story, persona: dict) -> tuple[float, str]:
             w = geo["priority"].get(region, 0.4)
             if w > best:
                 best, best_region = w, region
-    if _hits(story.text, persona["saudi_watchlist"]):
+    # الجهات الحكومية السعودية إشارة سعودية كاملة.
+    # (قائمة المتابعة saudi_watchlist مواضيع لا أماكن — "infrastructure" و"tourism" ليست دليلاً
+    #  على أن الخبر سعودي، فاستخدامها هنا كان يجعل أي خبر عالمي يبدو سعودياً.)
+    if _hits(story.text, persona.get("government_watchlist", [])):
         best = max(best, geo["priority"]["saudi_arabia"])
         best_region = "saudi_arabia"
     return best or geo["priority"]["global"], best_region
@@ -204,6 +271,15 @@ def credibility_score(story: Story, persona: dict) -> float:
     return persona["source_credibility"].get(story.source_type, 20) / 100
 
 
+def is_arabic(text: str) -> bool:
+    """هل النص عربي في جوهره؟ (يُستخدم لتفضيل المصادر العربية)"""
+    letters = [c for c in text if c.isalpha()]
+    if not letters:
+        return False
+    arabic = sum(1 for c in letters if "\u0600" <= c <= "\u06ff")
+    return arabic / len(letters) > 0.4
+
+
 def pillars_ranked(story: Story) -> list:
     """أعمدة المحتوى مرتّبة حسب قوة تطابقها مع القصة (§25)."""
     ranked = sorted(((len(_hits(story.text, terms)), p) for p, terms in PILLAR_TERMS.items()),
@@ -228,11 +304,11 @@ def leadership_boost(story: Story, persona: dict) -> tuple[float, str]:
 
 
 def _pillar_alias(term: str) -> str:
-    return {"AI": "ai_technology", "Construction": "construction_engineering", "Business": "business_management",
-            "Real Estate": "real_estate", "Technology": "ai_technology", "Project Management": "construction_engineering",
-            "Saudi Arabia": "saudi_economy", "Entrepreneurship": "entrepreneurship", "ERP": "ai_technology",
+    return {"AI": "ai_technology", "Construction": "construction_projects", "Business": "business_leadership",
+            "Real Estate": "real_estate", "Technology": "ai_technology", "Project Management": "construction_projects",
+            "Saudi Arabia": "saudi_economy", "Entrepreneurship": "business_leadership", "ERP": "ai_technology",
             "AI Agents": "ai_technology", "Business Automation": "ai_technology",
-            "Traditional Industries": "construction_engineering"}.get(term, "")
+            "Traditional Industries": "construction_projects"}.get(term, "")
 
 
 def score_story(story: Story, persona: dict, now: datetime | None = None,
@@ -255,9 +331,36 @@ def score_story(story: Story, persona: dict, now: datetime | None = None,
             + w["audience_value"] * audience + w["freshness"] * fresh
             + w["source_credibility"] * cred)
 
-    pillar = pillar_of(story, persona)
+    activities = activity_hits(story, persona)
+    # العمود يأتي من النشاط المطابق إن وُجد — وإلا من مطابقة المصطلحات العامة
+    pillar = activities[0]["pillar"] if activities else pillar_of(story, persona)
+    # إعلان جهة حكومية = خبر قرارات حكومية أولاً، مهما كثرت كلمات المجال الآخر
+    if (_hits(story.text, persona.get("government_watchlist", []))
+            and any(a["key"] == "government_decisions" for a in activities)):
+        pillar = "government_decisions"
     boost, intersection = leadership_boost(story, persona)
     multiplier = boost * float(learning.get(pillar, 1.0))
+
+    sf = persona.get("saudi_first") or {}
+    saudi_note = ""
+    if sf.get("enabled", True):
+        if activities:
+            multiplier *= float(sf.get("activity_match_boost", 1.15))
+        if geo <= persona["geography"]["priority"]["global"]:   # لا إشارة سعودية ولا خليجية
+            ai_only = bool(activities) and all(a["key"] == "artificial_intelligence" for a in activities)
+            if ai_only:
+                factor, saudi_note = float(sf.get("global_ai_exemption", 0.8)), \
+                    "ذكاء اصطناعي عالمي — يحتاج ربطاً سعودياً"
+            elif activities:
+                factor, saudi_note = float(sf.get("activity_no_saudi_multiplier", 0.75)), \
+                    "مرجع عالمي داخل أنشطتك — اربطه بالسوق السعودي"
+            else:
+                factor, saudi_note = float(sf.get("no_saudi_signal_multiplier", 0.45)), \
+                    "بلا إشارة سعودية ولا نشاط من أنشطتك"
+            multiplier *= factor
+        if is_arabic(story.title):
+            multiplier *= float(sf.get("arabic_source_boost", 1.08))
+
     total = round(min(100.0, base * multiplier), 1)
 
     story.scores = {"total": total, "base": round(base, 1), "personal_interest": round(interest, 2),
@@ -266,6 +369,9 @@ def score_story(story: Story, persona: dict, now: datetime | None = None,
                     "freshness": round(fresh, 2), "credibility": round(cred, 2),
                     "multiplier": round(multiplier, 2)}
     story.meta.update({"pillar": pillar, "pillars": pillars_ranked(story)[:3],
+                       "activities": [a["label"] for a in activities],
+                       "activity_keys": [a["key"] for a in activities],
+                       "saudi_note": saudi_note, "arabic": is_arabic(story.title),
                        "region": region, "domains": domains,
                        "interest_hits": interest_hits[:8], "intersection": intersection})
     return story
@@ -302,6 +408,14 @@ def similarity(a: str, b: str) -> float:
     jaccard = len(shared) / len(ta | tb)
     overlap = len(shared) / min(len(ta), len(tb))
     return round(0.5 * jaccard + 0.5 * overlap, 3)
+
+
+def passes_activity_filter(story: Story, persona: dict) -> bool:
+    """عند تفعيل require_activity_match لا يدخل خط الإنتاج إلا ما يقع داخل الأنشطة الستة."""
+    sf = persona.get("saudi_first") or {}
+    if not sf.get("require_activity_match"):
+        return True
+    return bool(story.meta.get("activity_keys"))
 
 
 def cluster_stories(stories: list, persona: dict) -> list:
@@ -494,7 +608,7 @@ def _self_test() -> int:
         ("قصة ذات صلة تتجاوز عتبة خط الإنتاج", high >= persona["thresholds"]["pipeline_entry"]),
         ("قصة غير ذات صلة تبقى دون العتبة", low < persona["thresholds"]["pipeline_entry"]),
         ("الأعمدة المستنتجة تشمل الإنشاءات والذكاء الاصطناعي",
-         {"construction_engineering", "ai_technology"} <= set(samples[0].meta["pillars"])),
+         {"construction_projects", "ai_technology"} <= set(samples[0].meta["pillars"])),
         ("المنطقة سعودية", samples[0].meta["region"] == "saudi_arabia"),
         ("التجميع أنتج عنقودين", len(clusters) == 2),
         ("الروايتان لنفس الحدث اندمجتا", max(c["source_count"] for c in clusters) == 2),

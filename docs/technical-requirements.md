@@ -91,7 +91,7 @@ CREATE TABLE interests (
 );
 
 CREATE TABLE pillars (
-  key             TEXT PRIMARY KEY,        -- ai_technology, construction_engineering, ...
+  key             TEXT PRIMARY KEY,        -- construction_projects, ai_technology, government_decisions, site_quality, ...
   label_ar        TEXT NOT NULL,
   label_en        TEXT NOT NULL,
   target_share    NUMERIC(4,3) NOT NULL,   -- §26 المزيج المستهدف
