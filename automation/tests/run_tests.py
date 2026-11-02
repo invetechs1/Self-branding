@@ -664,6 +664,93 @@ def test_saudi_first() -> None:
           all(o.get("angle") for o in cal["occasions"]))
 
 
+def test_attribution(tmp: Path) -> None:
+    section("15) الفرص الواردة: قياس الهدف لا الضجيج")
+    import attribution as A
+    import feedback as F
+
+    log_file, queue_file = tmp / "inbound.csv", tmp / "iq.csv"
+    log_file.write_text("# سجل الفرص\n" + ",".join(A.FIELDS) + "\n", encoding="utf-8")
+    with queue_file.open("w", newline="", encoding="utf-8") as fh:
+        w = csv.DictWriter(fh, fieldnames=["id", "pillar", "platform", "status"])
+        w.writeheader()
+        w.writerows([{"id": "501", "pillar": "government_decisions",
+                      "platform": "linkedin_post", "status": "posted"},
+                     {"id": "502", "pillar": "ai_technology",
+                      "platform": "twitter", "status": "posted"}])
+
+    old = (A.LOG, A.QUEUE, A.REPORT)
+    try:
+        A.LOG, A.QUEUE, A.REPORT = log_file, queue_file, tmp / "attr.md"
+        for ch, post, wt, stage in (("linkedin", "501", 3, "عرض"), ("whatsapp", "501", 3, "فوز"),
+                                    ("call", "501", 2, "اجتماع"), ("x", "502", 1, "تجاهل"),
+                                    ("x", "502", 1, "جديد"), ("email", "", 2, "جديد")):
+            A.append({"date": "2026-11-01", "channel": ch, "kind": "طلب_عرض",
+                      "label": "جهة من الشرقية", "source_post": post, "stage": stage,
+                      "weight": str(wt), "notes": ""})
+
+        log, queue = A.load_log(), A.load_queue()
+        check("الفرص تُسجَّل بترقيم متسلسل", [r["id"] for r in log] == list("123456"),
+              str([r["id"] for r in log]))
+        check("تعليقات رأس الملف لا تُقرأ كبيانات", len(log) == 6)
+
+        stats = A.by_pillar(log, queue)
+        check("الفرص تُنسب إلى عمود المنشور",
+              stats["government_decisions"]["count"] == 3 and stats["ai_technology"]["count"] == 2)
+        check("الثقل يُجمع لا يُعدّ فقط", stats["government_decisions"]["weight"] == 8.0)
+        check("حالات الفوز تُحصى", stats["government_decisions"]["won"] == 1)
+        check("فرصة بلا منشور تُعزل ولا تلوّث الأعمدة",
+              stats["_غير_منسوب"]["count"] == 1 and "_غير_منسوب" not in A.inbound_signal(log, queue))
+
+        signal = A.inbound_signal(log, queue)
+        check("العمود الذي جلب فرصاً يحصل إشارة أعلى من المتوسط",
+              signal["government_decisions"] > 1 > signal["ai_technology"], str(signal))
+        thin = A.inbound_signal([r for r in log if r["source_post"] == "502"][:1], queue)
+        check("فرصة واحدة ليست نمطاً — تبقى محايدة", thin == {}, str(thin))
+
+        A.update("4", stage="فوز")
+        check("تحديث المرحلة يعمل",
+              next(r for r in A.load_log() if r["id"] == "4")["stage"] == "فوز")
+
+        # الإشارة تدخل ترجيح التعلّم فعلياً
+        persona = P.load_persona()
+        F_old = F.load_inbound_signal
+        try:
+            F.load_inbound_signal = lambda: signal
+            weights, detail = F.compute_weights([], [], persona)
+            check("الفرص الواردة ترفع وزن العمود في التعلّم",
+                  weights["government_decisions"] > 1.0, f"{weights['government_decisions']}×")
+            check("والعمود الذي لم يجلب فرصاً ينخفض",
+                  weights["ai_technology"] < 1.0, f"{weights['ai_technology']}×")
+            check("سبب الوزن يذكر الفرص الواردة",
+                  "فرص واردة" in detail["government_decisions"]["why"])
+            check("وزن الفرص أثقل من وزن التفاعل", F.INBOUND_WEIGHT >= F.PERF_WEIGHT)
+            check("المضاعِف يبقى ضمن الحدود",
+                  all(F.BOUNDS[0] <= v <= F.BOUNDS[1] for v in weights.values()))
+        finally:
+            F.load_inbound_signal = F_old
+
+        # حارس السرية
+        A.append({"date": "2026-11-02", "channel": "call", "kind": "استفسار",
+                  "label": "عرض بقيمة 300 ألف ريال", "source_post": "501",
+                  "stage": "جديد", "weight": "2", "notes": "جواله +966500000000"})
+        warns = A.privacy_warnings(A.load_log())
+        check("السجل ينبّه على المبالغ وأرقام الجوال", len(warns) == 1, str(warns))
+
+        report = A.build_report(A.load_log(), queue, persona)
+        check("التقرير يرتب الأعمدة بالفرص", "أي محتوى جلب فرصاً" in report)
+        check("التقرير يحسب نسبة الإغلاق", "نسبة الإغلاق" in report)
+        check("التقرير يعرض تنبيه السرية", "تنبيه سرية" in report)
+        # حارس بنيوي: لا مولّد محتوى يقرأ سجل الفرص — هو للتحليل فقط
+        generator = (AUTOMATION / "generate_posts.py").read_text(encoding="utf-8")
+        check("لا مولّد محتوى يقرأ سجل الفرص",
+              "attribution" not in generator and "inbound-log" not in generator)
+        check("السجل نفسه يحذّر من البيانات الحساسة",
+              "لا تضع اسم عميل" in (ROOT / "outreach" / "inbound-log.csv").read_text(encoding="utf-8"))
+    finally:
+        A.LOG, A.QUEUE, A.REPORT = old
+
+
 def test_fetch_metrics(tmp: Path) -> None:
     section("14) سحب المقاييس آلياً: من المنصات إلى محرك التعلّم")
     import fetch_metrics as FM
@@ -991,7 +1078,7 @@ def test_repo_integrity() -> None:
               for p in AUTOMATION.rglob("*.py"))))
     for script in ("persona.py", "news_engine.py", "generate_posts.py", "publish.py",
                    "feedback.py", "tiktok.py", "tiktok_auth.py", "gov_watch.py",
-                   "calendar_sa.py", "data_stories.py", "fetch_metrics.py"):
+                   "calendar_sa.py", "data_stories.py", "fetch_metrics.py", "attribution.py"):
         check(f"{script} يُحلَّل بلا أخطاء نحوية",
               compile((AUTOMATION / script).read_text(encoding="utf-8"), script, "exec") is not None)
 
@@ -1025,6 +1112,7 @@ def main() -> int:
         test_learned_times(tmp)
         test_data_stories(tmp)
         test_fetch_metrics(tmp)
+        test_attribution(tmp)
         test_repo_integrity()
     finally:
         server.stop()

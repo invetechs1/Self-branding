@@ -35,8 +35,10 @@ WEIGHTS = ROOT / "automation" / "learning" / "weights.yml"
 REPORT = ROOT / "analytics" / "learning-report.md"
 
 MIN_SAMPLES = 3          # أقل عدد منشورات قبل تعديل وزن عمود
-BOUNDS = (0.7, 1.4)      # حدود المضاعِف — يمنع التعلّم من قتل التنوع
-PERF_WEIGHT, APPROVAL_WEIGHT = 0.7, 0.3
+BOUNDS = (0.7, 1.5)      # حدود المضاعِف — يمنع التعلّم من قتل التنوع
+# ثلاث إشارات: تفاعل الجمهور، تفضيل يحيى، والفرص الواردة.
+# الأخيرة أثقل من التفاعل لأنها الهدف المعلن: فرص أعمال لا إعجابات.
+PERF_WEIGHT, APPROVAL_WEIGHT, INBOUND_WEIGHT = 0.4, 0.2, 0.4
 
 
 def _f(value, default=0.0) -> float:
@@ -91,6 +93,16 @@ def clamp(x: float) -> float:
     return round(max(BOUNDS[0], min(BOUNDS[1], x)), 3)
 
 
+def load_inbound_signal() -> dict:
+    """إشارة الفرص الواردة لكل عمود — الهدف الحقيقي للنظام (§6)."""
+    try:
+        import attribution
+    except ImportError:
+        return {}
+    log = attribution.load_log()
+    return attribution.inbound_signal(log, attribution.load_queue()) if log else {}
+
+
 def compute_weights(perf: list, queue: list, persona: dict) -> tuple[dict, dict]:
     pillars = list(persona["content_pillars"])
     perf_means = performance_by_pillar(perf)
@@ -100,6 +112,7 @@ def compute_weights(perf: list, queue: list, persona: dict) -> tuple[dict, dict]
         if row.get("pillar"):
             counts[row["pillar"]] += 1
 
+    inbound = load_inbound_signal()
     global_perf = (sum(perf_means.values()) / len(perf_means)) if perf_means else 0.0
     global_appr = (sum(approvals.values()) / len(approvals)) if approvals else 0.0
 
@@ -114,9 +127,13 @@ def compute_weights(perf: list, queue: list, persona: dict) -> tuple[dict, dict]
             ratio = approvals[pillar] / global_appr
             signal += APPROVAL_WEIGHT * (ratio - 1)
             parts.append(f"اعتماد {approvals[pillar]:.0%}")
+        if pillar in inbound:
+            signal += INBOUND_WEIGHT * (inbound[pillar] - 1)
+            parts.append(f"فرص واردة {inbound[pillar]:.2f}×")
         weights[pillar] = clamp(signal)
         detail[pillar] = {"multiplier": weights[pillar], "samples": counts[pillar],
                           "engagement": round(perf_means.get(pillar, 0.0), 4),
+                          "inbound": inbound.get(pillar, 0),
                           "why": "، ".join(parts) or "بيانات غير كافية — وزن محايد"}
     return weights, detail
 
@@ -213,6 +230,19 @@ def learn(args) -> None:
              "| العمود | المضاعِف | عيّنات | متوسط التفاعل | السبب |", "|---|---|---|---|---|"]
     lines += [f"| {persona['content_pillars'][p]['label_ar']} | {d['multiplier']} | {d['samples']} "
               f"| {d['engagement']} | {d['why']} |" for p, d in ranked]
+    inbound = load_inbound_signal()
+    lines += ["", "## الفرص الواردة (الهدف الحقيقي)", ""]
+    if inbound:
+        lines += [f"- **{persona['content_pillars'].get(p, {}).get('label_ar', p)}**: {v}× "
+                  "من متوسط الأعمدة" for p, v in sorted(inbound.items(), key=lambda kv: -kv[1])]
+        lines.append("")
+        lines.append(f"وزنها في ترجيح الأعمدة {INBOUND_WEIGHT:.0%} — أثقل من التفاعل "
+                     f"({PERF_WEIGHT:.0%}) لأن الهدف فرص أعمال لا إعجابات.")
+        lines.append("التفصيل في `analytics/attribution-report.md`.")
+    else:
+        lines.append("- لا فرص مسجّلة بعد. سجّل أول فرصة واردة:")
+        lines.append("  `python automation/attribution.py --log --channel linkedin --kind طلب_عرض --post <رقم>`")
+
     lines += ["", "## مواعيد النشر المعتمدة آلياً", ""]
     if post_times:
         lines += [f"- **{platform}**: {v['time']} "
