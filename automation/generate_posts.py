@@ -29,6 +29,7 @@ from persona import (WEIGHTS_PATH, build_system_prompt, classify_approval, clust
 import news_engine
 import tiktok
 import calendar_sa
+import data_stories
 
 ROOT = Path(__file__).resolve().parent.parent
 QUEUE = ROOT / "automation" / "queue" / "queue.csv"
@@ -203,6 +204,10 @@ def build_row(uid: int, date, platform: str, content: str, persona: dict, *,
               source_url: str = "", fact_conf: float = 1.0, previous: list,
               times: dict | None = None) -> dict:
     level, reasons = classify_approval(content, persona, fact_conf)
+    if content_type == "data_story" and level == "green":
+        # رقم من داخل شركاته: مراجعته البشرية إلزامية مهما بدا النص آمناً (§36)
+        level = "yellow"
+        reasons.append("قصة بيانات تشغيلية — تحقّق من الرقم وأساسه قبل النشر")
     when, when_src = post_time(platform, persona, times)
     if when_src.startswith("متعلَّم"):
         reasons.append(f"الموعد {when} {when_src} من أدائك")
@@ -337,6 +342,72 @@ def run_occasions(args, client, model, persona, facts) -> list:
     return rows
 
 
+def data_story_prompt(persona: dict, facts: dict, metric: dict, platform: str, language: str) -> str:
+    return f"""رقم تشغيلي من شركات يحيى (هذا الرقم وأساسه هما المادة كلها):
+
+{data_stories.describe(metric)}
+الزاوية: {metric.get('angle', '')}
+الفترة: {metric.get('period') or 'غير محددة'}
+
+ملف الحقائق (المصدر الوحيد لأي معلومة شخصية أخرى):
+```yaml
+{yaml.dump(facts, allow_unicode=True)}
+```
+
+اكتب منشوراً لمنصة {platform} باللغة {'العربية' if language == 'ar' else 'الإنجليزية'}.
+{platform_spec(persona, platform)}
+
+بنية المنشور:
+1. ابدأ بالرقم مباشرة — بلا مقدمة ولا تمهيد.
+2. اذكر أساسه صراحةً (من كم حالة استُخرج). الرقم بلا أساس ادعاء لا بيان.
+3. فسّر لماذا هو كذلك: ما السبب التشغيلي الحقيقي خلفه؟
+4. ماذا يفعل القارئ بهذا الرقم غداً في مشروعه؟
+5. اختم بسؤال يدعو غيره لمشاركة رقمه.
+
+ممنوع منعاً باتاً:
+- أي رقم غير الرقم أعلاه. لا تقدّر، ولا تستنتج أرقاماً مشتقة، ولا تقارن بمتوسط السوق
+  ما لم يكن مذكوراً أعلاه.
+- اسم أي عميل أو مشروع أو جهة أو مبلغ مالي، ولو للتوضيح.
+- تقديم الرقم على أنه معيار للقطاع — هو رقمنا نحن، بهذا الأساس، في هذه الفترة.
+
+أخرج النص النهائي فقط."""
+
+
+def run_data_story(args, client, model, persona, facts) -> list:
+    """§3: محتوى من أرقام يحيى التشغيلية — ما لا يستطيع منافس نسخه."""
+    ready = data_stories.publishable()
+    if not ready:
+        sys.exit("لا رقم تشغيلي جاهز. شغّل: python automation/data_stories.py --list"
+                 "\nواملأ value و basis في profile/operations-metrics.yml.")
+
+    queue = read_queue()
+    used = {r.get("source_url") for r in queue if r.get("source_url", "").startswith("metric:")}
+    ready = [m for m in ready if f"metric:{m['key']}" not in used][:args.count]
+    if not ready:
+        sys.exit("كل الأرقام الجاهزة لها محتوى في الطابور بالفعل.")
+
+    previous, rows = previous_contents(queue), []
+    system = build_system_prompt(persona, facts, args.language)
+    times = learned_times()
+    uid, start = int(datetime.now().timestamp()), datetime.now()
+
+    for i, metric in enumerate(ready):
+        print(f"\n◆ {data_stories.describe(metric)}")
+        for platform in args.platforms:
+            print(f"    توليد {platform} ...")
+            content = generate(client, model, system,
+                               data_story_prompt(persona, facts, metric, platform, args.language))
+            uid += 1
+            row = build_row(uid, start + timedelta(days=i), platform, content, persona,
+                            pillar=metric.get("pillar", "construction_projects"),
+                            content_type="data_story", language=args.language,
+                            source_url=f"metric:{metric['key']}", previous=previous, times=times)
+            rows.append(row)
+            previous.append(content)
+            print(f"      → {row['approval_level'].upper()} — {row['review_notes'][:70]}")
+    return rows
+
+
 def next_idea() -> str:
     bank = ROOT / "content" / "idea-bank.md"
     lines = bank.read_text(encoding="utf-8").splitlines()
@@ -390,6 +461,8 @@ def main() -> None:
     ap.add_argument("--week", action="store_true", help="توليد أسبوع من بنك الأفكار")
     ap.add_argument("--occasions", action="store_true",
                     help="توليد محتوى المناسبات السعودية التي حان وقتها")
+    ap.add_argument("--data-story", action="store_true",
+                    help="توليد محتوى من أرقامك التشغيلية (operations-metrics.yml)")
     ap.add_argument("--count", type=int, default=3, help="عدد القصص في وضع الأخبار")
     ap.add_argument("--platforms", nargs="+", default=NEWS_PLATFORMS,
                     help=f"المنصات في وضع الأخبار (الافتراضي: {' '.join(NEWS_PLATFORMS)})")
@@ -397,8 +470,8 @@ def main() -> None:
     ap.add_argument("--start", help="تاريخ بداية الأسبوع YYYY-MM-DD")
     args = ap.parse_args()
 
-    if not (args.from_news or args.week or args.occasions):
-        ap.error("اختر --from-news أو --week أو --occasions")
+    if not (args.from_news or args.week or args.occasions or args.data_story):
+        ap.error("اختر --from-news أو --week أو --occasions أو --data-story")
 
     cfg, persona, facts = load_config(), load_persona(), load_facts()
     settings, news_cfg = cfg.get("settings", {}), cfg.get("news", {})
@@ -415,6 +488,8 @@ def main() -> None:
         rows = run_from_news(args, client, model, persona, facts)
     elif args.occasions:
         rows = run_occasions(args, client, model, persona, facts)
+    elif args.data_story:
+        rows = run_data_story(args, client, model, persona, facts)
     else:
         rows = run_week(args, client, model, persona, facts)
 

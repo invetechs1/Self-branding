@@ -663,6 +663,70 @@ def test_saudi_first() -> None:
           all(o.get("angle") for o in cal["occasions"]))
 
 
+def test_data_stories(tmp: Path) -> None:
+    section("13) قصص البيانات: الحواجز تُفرض برمجياً لا ثقةً")
+    import data_stories as DS
+
+    def metric(**kw):
+        base = {"key": "k", "label": "نسبة إعادة التنفيذ", "value": 9, "unit": "%",
+                "basis": "من 12 مشروعاً", "period": "2026", "sensitivity": "safe",
+                "angle": "كلفة إعادة العمل تُدفع مرتين"}
+        base.update(kw)
+        return base
+
+    check("رقم مكتمل وآمن يمرّ", DS.validate(metric())[0])
+    check("بلا قيمة يُرفض", not DS.validate(metric(value=None))[0])
+    check("بلا أساس يُرفض", not DS.validate(metric(basis=None))[0])
+    check("أساس بلا عدد يُرفض", not DS.validate(metric(basis="من عدة مشاريع"))[0])
+    check("أساس دون حد التجميع يُرفض",
+          not DS.validate(metric(basis="من 3 مشاريع"))[0],
+          str(DS.validate(metric(basis="من 3 مشاريع"))[1]))
+    check("internal لا يخرج في منشور", not DS.validate(metric(sensitivity="internal"))[0])
+    check("never محجوب تماماً", not DS.validate(metric(sensitivity="never"))[0])
+    check("تصنيف مجهول يُرفض", not DS.validate(metric(sensitivity=""))[0])
+
+    for money in ("متوسط قيمة المستخلص 400 ألف ريال", "التوفير بلغ 2 مليون"):
+        ok, why = DS.validate(metric(label=money))
+        check(f"مبلغ مالي مطلق يُحجب: {money[:28]}", not ok and any("مالي" in w for w in why))
+    ok, _ = DS.validate(metric(angle="وفّرنا ما يعادل 500 ألف دولار"))
+    check("المبلغ في الزاوية يُحجب أيضاً", not ok)
+
+    mixed = [metric(key="a"), metric(key="b", sensitivity="internal"),
+             metric(key="c", value=None), metric(key="d", basis="من 2 مشروع")]
+    check("publishable يمرّر الآمن فقط",
+          [m["key"] for m in DS.publishable(mixed)] == ["a"])
+
+    check("الصياغة تذكر الأساس دائماً", "من 12 مشروعاً" in DS.describe(metric()))
+    check("النسبة تُصاغ بعلامتها", DS.describe(metric()).count("%") == 1)
+
+    shipped = DS.load_metrics()
+    check("الملف المُسلَّم لا يحوي أرقاماً مخترعة",
+          all(m.get("value") is None for m in shipped), "قيم جاهزة بلا إذن يحيى")
+    check("كل بند في الملف له زاوية وتصنيف",
+          all(m.get("angle") and m.get("sensitivity") for m in shipped))
+
+    # قصة البيانات لا تكون خضراء مهما بدا النص آمناً
+    import generate_posts as G
+    persona = P.load_persona()
+    row = G.build_row(1, datetime.now(), "linkedin_post",
+                      "شرح مبسط لمؤشر إعادة التنفيذ في المشاريع", persona,
+                      pillar="construction_projects", content_type="data_story",
+                      language="ar", previous=[])
+    check("قصة البيانات تُلزَم بالمراجعة البشرية", row["approval_level"] == "yellow",
+          row["approval_level"])
+    check("سبب الإلزام مكتوب للمراجع", "قصة بيانات" in row["review_notes"])
+    plain = G.build_row(2, datetime.now(), "linkedin_post",
+                        "شرح مبسط لمؤشر إعادة التنفيذ في المشاريع", persona,
+                        pillar="construction_projects", content_type="educational",
+                        language="ar", previous=[])
+    check("المحتوى التعليمي نفسه يبقى أخضر", plain["approval_level"] == "green")
+
+    prompt = G.data_story_prompt(persona, P.load_facts(), metric(), "linkedin_post", "ar")
+    check("التعليمات تمنع أي رقم آخر", "أي رقم غير الرقم أعلاه" in prompt)
+    check("التعليمات تمنع أسماء العملاء والمبالغ", "اسم أي عميل أو مشروع" in prompt)
+    check("التعليمات توجب ذكر الأساس", "أساسه صراحةً" in prompt)
+
+
 def test_learned_times(tmp: Path) -> None:
     section("12) مواعيد النشر تتعلّم — داخل نوافذ الاستراتيجية فقط")
     import feedback as F
@@ -837,7 +901,7 @@ def test_repo_integrity() -> None:
               for p in AUTOMATION.rglob("*.py"))))
     for script in ("persona.py", "news_engine.py", "generate_posts.py", "publish.py",
                    "feedback.py", "tiktok.py", "tiktok_auth.py", "gov_watch.py",
-                   "calendar_sa.py"):
+                   "calendar_sa.py", "data_stories.py"):
         check(f"{script} يُحلَّل بلا أخطاء نحوية",
               compile((AUTOMATION / script).read_text(encoding="utf-8"), script, "exec") is not None)
 
@@ -869,6 +933,7 @@ def main() -> int:
         test_voice(tmp)
         test_gov_watch(tmp)
         test_learned_times(tmp)
+        test_data_stories(tmp)
         test_repo_integrity()
     finally:
         server.stop()
