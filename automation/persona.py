@@ -278,6 +278,12 @@ def saudi_gcc_score(story: Story, persona: dict) -> tuple[float, str]:
     if _hits(story.text, persona.get("government_watchlist", [])):
         best = max(best, geo["priority"]["saudi_arabia"])
         best_region = "saudi_arabia"
+
+    # لا إشارة في النص؟ المصدر نفسه يحسم: صفحة وزارة سعودية سعوديةٌ ولو خلا العنوان من ذكرها
+    if not best:
+        hinted = story.meta.get("feed_region")
+        if hinted in geo["priority"]:
+            return geo["priority"][hinted], hinted
     return best or geo["priority"]["global"], best_region
 
 
@@ -368,8 +374,10 @@ def score_story(story: Story, persona: dict, now: datetime | None = None,
     activities = activity_hits(story, persona)
     # العمود يأتي من النشاط المطابق إن وُجد — وإلا من مطابقة المصطلحات العامة
     pillar = activities[0]["pillar"] if activities else pillar_of(story, persona)
-    # إعلان جهة حكومية = خبر قرارات حكومية أولاً، مهما كثرت كلمات المجال الآخر
-    if (_hits(story.text, persona.get("government_watchlist", []))
+    # إعلان جهة حكومية = خبر قرارات حكومية أولاً، مهما كثرت كلمات المجال الآخر.
+    # المصدر وحده كافٍ: خبر مأخوذ من صفحة وزارة هو قرار حكومي ولو لم يذكر اسمها في العنوان.
+    if story.meta.get("gov_entity") or (
+            _hits(story.text, persona.get("government_watchlist", []))
             and any(a["key"] == "government_decisions" for a in activities)):
         pillar = "government_decisions"
     boost, intersection = leadership_boost(story, persona)

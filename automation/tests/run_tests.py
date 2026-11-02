@@ -663,6 +663,81 @@ def test_saudi_first() -> None:
           all(o.get("angle") for o in cal["occasions"]))
 
 
+def test_gov_watch(tmp: Path) -> None:
+    section("11) مرصد القرارات الحكومية: استخراج من صفحات بلا RSS")
+    import gov_watch as GW
+    persona, now = P.load_persona(), datetime.now(timezone.utc)
+    fx = Path(__file__).resolve().parent / "fixtures" / "gov"
+
+    pages = tmp / "gov_pages"
+    pages.mkdir(exist_ok=True)
+    for f in fx.glob("*.html"):
+        shutil.copy(f, pages / f.name)
+    server = FeedServer(pages)
+
+    try:
+        hrsd = {"name": "وزارة الموارد البشرية", "url": f"{server.base}/hrsd_news.html",
+                "topic": "نظام العمل", "priority": 1, "selectors": {},
+                "keywords": ["نطاقات", "التوطين", "نظام العمل", "قوى", "العمالة", "قرار"]}
+        sca = {"name": "الهيئة السعودية للمقاولين", "url": f"{server.base}/sca_news.html",
+               "topic": "تصنيف المقاولين", "priority": 1, "selectors": {},
+               "keywords": ["المقاولين", "التصنيف", "العقد الموحد", "المقاول"]}
+
+        rows, how = GW.entity_items("hrsd", hrsd)          # جلب HTTP فعلي
+        titles = [r["title"] for r in rows]
+        check("جلب صفحة حكومية واستخراج قائمة الأخبار", len(rows) == 5, f"{len(rows)} عنصراً")
+        check("الروابط مطلقة لا نسبية", all(r["url"].startswith("http") for r in rows))
+        check("روابط التنقل والتذييل استُبعدت",
+              not any(t in titles for t in ("الرئيسية", "اتصل بنا", "الخصوصية")))
+        check("الاستخراج التلقائي يحدد بنية القائمة", how.startswith("auto:"), how[:40])
+
+        rows2, _ = GW.entity_items("sca", sca)
+        check("يعمل مع بنية صفحة مختلفة تماماً", len(rows2) == 4, f"{len(rows2)}")
+        check("يختار قائمة الأخبار لا قائمة التنقل المشابهة",
+              all("عن الهيئة" not in r["title"] for r in rows2))
+
+        # المحددات الصريحة تتقدم على التخمين
+        hrsd_sel = dict(hrsd, selectors={"item": "div.news-card", "title": "h3",
+                                         "link": "a", "date": "span.news-card__date"})
+        rows3, how3 = GW.entity_items("hrsd", hrsd_sel)
+        check("المحددات الصريحة تُستخدم حين تُضبط", how3 == "selectors")
+        check("المحددات تلتقط التاريخ أيضاً", rows3 and rows3[0]["date_text"] == "2026-10-28",
+              rows3[0]["date_text"] if rows3 else "—")
+
+        stories = GW.to_stories("hrsd", hrsd, rows)
+        for s in stories:
+            P.score_story(s, persona, now, {})
+        top = max(stories, key=lambda s: s.scores["total"])
+        check("الخبر الحكومي يُصنَّف مصدراً رسمياً",
+              all(s.source_type == "official_government" for s in stories))
+        check("قرار تشغيلي يتصدر لا خبر احتفالي",
+              any(w in top.title for w in ("قوى", "نطاقات", "أجير", "لائحة")), top.title[:60])
+        check("أخبار الجهة الواحدة تتفاوت بدل أن تتساوى",
+              len({round(s.scores["total"]) for s in stories}) > 1,
+              str(sorted({round(s.scores["total"]) for s in stories})))
+        check("يتجاوز عتبة خط الإنتاج بفارق مريح",
+              top.scores["total"] >= persona["thresholds"]["deep_dive"],
+              f"{top.scores['total']}")
+        check("العمود هو القرارات الحكومية", top.meta["pillar"] == "government_decisions",
+              top.meta["pillar"])
+        ceremony = next(s for s in stories if "تكرّم" in s.title)
+        check("الخبر الاحتفالي يسقط دون عتبة خط الإنتاج",
+              ceremony.scores["total"] < persona["thresholds"]["pipeline_entry"],
+              f"{ceremony.scores['total']}")
+        check("خبر الجهة سعودي ولو خلا العنوان من ذكر السعودية",
+              ceremony.meta["region"] == "saudi_arabia")
+
+        broken = dict(hrsd, url=f"{server.base}/does_not_exist.html")
+        try:
+            GW.entity_items("x", broken)
+            ok = False
+        except Exception:        # noqa: BLE001 — المطلوب أن يرتفع الخطأ ليُلتقط في cmd_fetch
+            ok = True
+        check("الصفحة المفقودة تُبلَّغ كخطأ لا كصمت", ok)
+    finally:
+        server.stop()
+
+
 def test_repo_integrity() -> None:
     section("7) سلامة المستودع والإعدادات")
     persona = P.load_persona()
@@ -681,7 +756,8 @@ def test_repo_integrity() -> None:
               p.read_text(encoding="utf-8", errors="ignore")
               for p in AUTOMATION.rglob("*.py"))))
     for script in ("persona.py", "news_engine.py", "generate_posts.py", "publish.py",
-                   "feedback.py", "tiktok.py", "tiktok_auth.py"):
+                   "feedback.py", "tiktok.py", "tiktok_auth.py", "gov_watch.py",
+                   "calendar_sa.py"):
         check(f"{script} يُحلَّل بلا أخطاء نحوية",
               compile((AUTOMATION / script).read_text(encoding="utf-8"), script, "exec") is not None)
 
@@ -711,6 +787,7 @@ def main() -> int:
         test_tiktok(tmp)
         test_saudi_first()
         test_voice(tmp)
+        test_gov_watch(tmp)
         test_repo_integrity()
     finally:
         server.stop()

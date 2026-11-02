@@ -31,6 +31,9 @@ jobs:
       - name: Self-test scoring logic
         run: python automation/persona.py --self-test
 
+      - name: Watch Saudi government decisions
+        run: python automation/gov_watch.py --fetch || echo "تعذّر الوصول إلى بعض الجهات"
+
       - name: Discover and score news
         run: python automation/news_engine.py --discover
 
