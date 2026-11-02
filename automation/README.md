@@ -45,7 +45,7 @@
 | `learning/weights.yml` | مضاعِفات الأعمدة — تُولَّد آلياً |
 | `tiktok.py` | تكامل تيك توك: رفع الفيديو، تجديد الرموز، استخراج الكابشن |
 | `tiktok_auth.py` | ربط حسابك على تيك توك (OAuth) وحفظ الرموز |
-| `tests/run_tests.py` | اختبار شامل (179 فحصاً) للمسار كاملاً — بلا مفاتيح وبلا شبكة خارجية |
+| `tests/run_tests.py` | اختبار شامل (180 فحصاً) للمسار كاملاً — بلا مفاتيح وبلا شبكة خارجية |
 
 ## التشغيل
 
@@ -53,7 +53,7 @@
 pip install -r requirements.txt
 cp config.example.yml config.yml     # وعبّئ المفاتيح — لا يُرفع إلى git أبداً
 
-python tests/run_tests.py                     # الاختبار الشامل للنظام (179 فحصاً)
+python tests/run_tests.py                     # الاختبار الشامل للنظام (180 فحصاً)
 python persona.py --self-test                 # فحص سريع لمنطق الترتيب والسلامة
 python news_engine.py --check-sources         # فحص روابط المصادر
 python news_engine.py --discover              # دورة اكتشاف وترتيب (بلا مفاتيح كذلك)
