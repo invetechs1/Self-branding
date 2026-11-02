@@ -369,6 +369,27 @@ platforms:
     length: "900-1200 كلمة"
     style: "عنوان بصيغة بحث حقيقية، عناوين فرعية، خلاصة قابلة للتطبيق."
 
+# ── مواعيد النشر: الافتراضي، والنوافذ التي يتعلّم النظام داخلها ──
+# التعلّم يحسّن الوقت داخل نافذة الاستراتيجية ولا يخرج عنها:
+# منشور واحد نجح الثالثة فجراً لا يجعلها موعد النشر.
+posting:
+  timezone: "Asia/Riyadh"
+  min_samples_per_slot: 3     # أقل عدد منشورات في الوقت نفسه قبل اعتماده موعداً
+  defaults:
+    twitter: "20:30"
+    twitter_thread: "08:00"
+    linkedin_post: "08:30"
+    instagram_carousel: "18:00"
+    tiktok_script: "19:00"
+    article: "10:00"
+  windows:                    # النوافذ الذهبية من strategy/04-platform-playbooks.md
+    twitter: ["07:00-09:30", "20:00-23:00"]
+    twitter_thread: ["07:00-09:30"]
+    linkedin_post: ["07:30-10:00"]
+    instagram_carousel: ["17:00-22:00"]
+    tiktok_script: ["17:00-23:00"]
+    article: ["09:00-12:00"]
+
 # ── طبقة الرؤية (§24) — أسئلة يجيب عنها النظام داخلياً قبل الكتابة ──
 insight_questions:
   - "ماذا يعني هذا للشركات السعودية؟"

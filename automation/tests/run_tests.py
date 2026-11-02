@@ -663,6 +663,86 @@ def test_saudi_first() -> None:
           all(o.get("angle") for o in cal["occasions"]))
 
 
+def test_learned_times(tmp: Path) -> None:
+    section("12) مواعيد النشر تتعلّم — داخل نوافذ الاستراتيجية فقط")
+    import feedback as F
+    import generate_posts as G
+    persona = P.load_persona()
+
+    def rows(entries):
+        """entries = [(platform, time, engagement_scale, count)]"""
+        out, i = [], 0
+        for platform, when, scale, count in entries:
+            for _ in range(count):
+                i += 1
+                likes = 5000 * scale * 0.5
+                out.append({"id": i, "date": "2026-10-05", "time": when, "platform": platform,
+                            "pillar": "construction_projects", "language": "ar",
+                            "impressions": 5000, "likes": round(likes),
+                            "comments": round(likes * .1), "shares": round(likes * .08),
+                            "saves": round(likes * .05), "profile_visits": round(likes * .3),
+                            "followers_gained": round(likes * .05), "clicks": 5, "hook": "h"})
+        return out
+
+    # لينكدإن: 09:00 يتفوق على 08:30 — كلاهما داخل النافذة 07:30-10:00
+    learned = F.learn_post_times(rows([("linkedin_post", "08:30", 0.02, 4),
+                                       ("linkedin_post", "09:00", 0.09, 4)]), persona)
+    check("يعتمد الوقت الأعلى تفاعلاً داخل النافذة",
+          learned.get("linkedin_post", {}).get("time") == "09:00", str(learned))
+
+    # وقت شاذ خارج النافذة مهما علا تفاعله
+    wild = F.learn_post_times(rows([("linkedin_post", "03:00", 0.5, 6),
+                                    ("linkedin_post", "08:30", 0.03, 4)]), persona)
+    check("يرفض الوقت خارج نافذة الاستراتيجية مهما علا تفاعله",
+          wild.get("linkedin_post", {}).get("time") == "08:30", str(wild))
+
+    # عيّنة قليلة لا تُعتمد
+    thin = F.learn_post_times(rows([("linkedin_post", "09:30", 0.9, 2)]), persona)
+    check("عيّنة دون الحد الأدنى لا تُعتمد", "linkedin_post" not in thin, str(thin))
+    check("بلا بيانات: لا مواعيد متعلَّمة", F.learn_post_times([], persona) == {})
+
+    # كل منصة تتعلّم وقتها
+    multi = F.learn_post_times(rows([("linkedin_post", "09:00", 0.08, 4),
+                                     ("twitter", "21:00", 0.07, 4),
+                                     ("twitter", "08:00", 0.02, 3)]), persona)
+    check("التعلّم مستقل لكل منصة",
+          multi.get("twitter", {}).get("time") == "21:00"
+          and multi.get("linkedin_post", {}).get("time") == "09:00", str(multi))
+
+    # التطبيق في المولّد
+    t, src = G.post_time("linkedin_post", persona, multi)
+    check("المولّد يستخدم الموعد المتعلَّم", t == "09:00" and src.startswith("متعلَّم"), f"{t} {src}")
+    t2, src2 = G.post_time("linkedin_post", persona, {})
+    check("وبلا تعلّم يستخدم افتراضي persona.yml", t2 == "08:30" and src2 == "افتراضي", f"{t2} {src2}")
+    t3, src3 = G.post_time("منصة_غير_معروفة", persona, {})
+    check("منصة غير معرَّفة تأخذ موعداً احتياطياً", bool(t3), f"{t3} {src3}")
+
+    check("كل منصة في الإيقاع الأسبوعي لها نافذة وافتراضي",
+          all(p in (persona["posting"]["defaults"]) and p in persona["posting"]["windows"]
+              for p in ("twitter", "twitter_thread", "linkedin_post", "article",
+                        "instagram_carousel", "tiktok_script")))
+
+    # التقرير يشرح، ويحفظ المواعيد حيث يقرؤها المولّد
+    perf_file, weights_file, report_file = tmp / "p.csv", tmp / "w.yml", tmp / "r.md"
+    with perf_file.open("w", newline="", encoding="utf-8") as fh:
+        data = rows([("linkedin_post", "09:00", 0.08, 4), ("twitter", "21:00", 0.06, 4)])
+        w = csv.DictWriter(fh, fieldnames=list(data[0]))
+        w.writeheader()
+        w.writerows(data)
+    old = (F.PERF, F.WEIGHTS, F.REPORT, F.QUEUE)
+    try:
+        F.PERF, F.WEIGHTS, F.REPORT, F.QUEUE = perf_file, weights_file, report_file, tmp / "none.csv"
+        F.learn(None)
+        saved = yaml.safe_load(weights_file.read_text(encoding="utf-8"))
+        check("المواعيد تُحفظ في ملف الأوزان",
+              saved.get("best_post_times", {}).get("linkedin_post", {}).get("time") == "09:00")
+        text = report_file.read_text(encoding="utf-8")
+        check("التقرير يعرض المواعيد المعتمدة", "مواعيد النشر المعتمدة آلياً" in text)
+        check("التقرير يعرض أفضل أيام الأسبوع إرشادياً", "أفضل أيام الأسبوع" in text)
+    finally:
+        F.PERF, F.WEIGHTS, F.REPORT, F.QUEUE = old
+
+
 def test_gov_watch(tmp: Path) -> None:
     section("11) مرصد القرارات الحكومية: استخراج من صفحات بلا RSS")
     import gov_watch as GW
@@ -788,6 +868,7 @@ def main() -> int:
         test_saudi_first()
         test_voice(tmp)
         test_gov_watch(tmp)
+        test_learned_times(tmp)
         test_repo_integrity()
     finally:
         server.stop()

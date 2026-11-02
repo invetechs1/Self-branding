@@ -23,8 +23,9 @@ from pathlib import Path
 import anthropic
 import yaml
 
-from persona import (build_system_prompt, classify_approval, cluster_stories, is_repeat,
-                     load_facts, load_learning, load_persona, mix_deficit, rel, score_story)
+from persona import (WEIGHTS_PATH, build_system_prompt, classify_approval, cluster_stories,
+                     is_repeat, load_facts, load_learning, load_persona, mix_deficit, rel,
+                     score_story)
 import news_engine
 import tiktok
 import calendar_sa
@@ -42,8 +43,24 @@ MEDIA_FORMATS = ("tiktok_script", "instagram_carousel")
 WEEKLY_RHYTHM = {0: ["twitter_thread"], 1: ["article"], 2: ["instagram_carousel"],
                  3: ["tiktok_script"], 6: ["linkedin_post"]}
 DAILY_TWEET_DAYS = range(7)
+# احتياطي أخير فقط — المواعيد الفعلية من persona.yml ← posting.defaults،
+# ويتقدّم عليها ما تعلّمه النظام من أدائك (learning/weights.yml ← best_post_times)
 POST_TIMES = {"twitter_thread": "08:00", "twitter": "20:30", "article": "10:00",
               "instagram_carousel": "18:00", "tiktok_script": "19:00", "linkedin_post": "08:30"}
+
+
+def post_time(platform: str, persona: dict, learned: dict | None = None) -> tuple[str, str]:
+    """موعد نشر المنصة: المتعلَّم إن وُجد، وإلا الافتراضي من persona.yml.
+
+    يعيد (الوقت، مصدره) ليظهر للمراجع من أين جاء الموعد.
+    """
+    slot = (learned or {}).get(platform)
+    if isinstance(slot, dict) and slot.get("time"):
+        return slot["time"], f"متعلَّم ({slot.get('samples', '?')} منشورات)"
+    defaults = (persona.get("posting") or {}).get("defaults") or {}
+    if defaults.get(platform):
+        return defaults[platform], "افتراضي"
+    return POST_TIMES.get(platform, "12:00"), "احتياطي"
 NEWS_PLATFORMS = ["linkedin_post", "twitter_thread", "twitter"]
 
 
@@ -88,6 +105,14 @@ def previous_contents(queue: list, limit: int = 60) -> list:
 
 
 # ────────────────────────── التوليد ──────────────────────────
+
+def learned_times() -> dict:
+    """مواعيد النشر التي استنتجها feedback.py من أدائك الفعلي."""
+    if not WEIGHTS_PATH.exists():
+        return {}
+    data = yaml.safe_load(WEIGHTS_PATH.read_text(encoding="utf-8")) or {}
+    return data.get("best_post_times") or {}
+
 
 def platform_spec(persona: dict, platform: str) -> str:
     spec = persona["platforms"].get(platform, {})
@@ -175,8 +200,12 @@ def idea_prompt(persona: dict, facts: dict, idea: str, platform: str, pillar: st
 
 def build_row(uid: int, date, platform: str, content: str, persona: dict, *,
               pillar: str, content_type: str, language: str, relevance: str = "",
-              source_url: str = "", fact_conf: float = 1.0, previous: list) -> dict:
+              source_url: str = "", fact_conf: float = 1.0, previous: list,
+              times: dict | None = None) -> dict:
     level, reasons = classify_approval(content, persona, fact_conf)
+    when, when_src = post_time(platform, persona, times)
+    if when_src.startswith("متعلَّم"):
+        reasons.append(f"الموعد {when} {when_src} من أدائك")
     if is_repeat(content, previous):
         level = "yellow" if level == "green" else level
         reasons.append("يشبه منشوراً سابقاً (§43) — غيّر الخطّاف أو الزاوية")
@@ -186,7 +215,7 @@ def build_row(uid: int, date, platform: str, content: str, persona: dict, *,
     elif platform == "instagram_carousel":
         media_note = "صمّم الشرائح وفق قالب Canva الموحد"
     return {
-        "id": uid, "date": f"{date:%Y-%m-%d}", "time": POST_TIMES.get(platform, "12:00"),
+        "id": uid, "date": f"{date:%Y-%m-%d}", "time": when,
         "platform": platform, "pillar": pillar, "content_type": content_type, "language": language,
         "approval_level": level, "review_notes": " | ".join(reasons), "relevance": relevance,
         "source_url": source_url, "content": content,
@@ -224,6 +253,7 @@ def run_from_news(args, client, model, persona, facts) -> list:
 
     previous, rows = previous_contents(queue), []
     system = build_system_prompt(persona, facts, args.language)
+    times = learned_times()
     uid, start = int(datetime.now().timestamp()), datetime.now()
 
     for i, cluster in enumerate(clusters):
@@ -237,7 +267,8 @@ def run_from_news(args, client, model, persona, facts) -> list:
             row = build_row(uid, start + timedelta(days=i), platform, content, persona,
                             pillar=p.meta.get("pillar", "ai_technology"), content_type="news_insight",
                             language=args.language, relevance=str(p.scores["total"]),
-                            source_url=p.url, fact_conf=cluster["fact_confidence"], previous=previous)
+                            source_url=p.url, fact_conf=cluster["fact_confidence"],
+                            previous=previous, times=times)
             rows.append(row)
             previous.append(content)
             print(f"      → {row['approval_level'].upper()}"
@@ -285,6 +316,7 @@ def run_occasions(args, client, model, persona, facts) -> list:
 
     previous, rows = previous_contents(queue), []
     system = build_system_prompt(persona, facts, args.language)
+    times = learned_times()
     uid, start = int(datetime.now().timestamp()), datetime.now()
 
     for occ in due:
@@ -298,7 +330,7 @@ def run_occasions(args, client, model, persona, facts) -> list:
             row = build_row(uid, start + timedelta(days=max(0, occ["days_away"] - 2)), platform,
                             content, persona, pillar=occ.get("pillar", "occasions"),
                             content_type="occasion", language=args.language,
-                            source_url=f"occasion:{occ['key']}", previous=previous)
+                            source_url=f"occasion:{occ['key']}", previous=previous, times=times)
             rows.append(row)
             previous.append(content)
             print(f"      → {row['approval_level'].upper()}")
@@ -331,6 +363,7 @@ def run_week(args, client, model, persona, facts) -> list:
 
     previous, rows = previous_contents(queue), []
     system = build_system_prompt(persona, facts, args.language)
+    times = learned_times()
     uid = int(start.timestamp())
 
     for day_offset in range(7):
@@ -344,7 +377,8 @@ def run_week(args, client, model, persona, facts) -> list:
                                idea_prompt(persona, facts, idea, platform, pillar, args.language))
             uid += 1
             row = build_row(uid, date, platform, content, persona, pillar=pillar,
-                            content_type="educational", language=args.language, previous=previous)
+                            content_type="educational", language=args.language,
+                            previous=previous, times=times)
             rows.append(row)
             previous.append(content)
     return rows

@@ -121,6 +121,66 @@ def compute_weights(perf: list, queue: list, persona: dict) -> tuple[dict, dict]
     return weights, detail
 
 
+def _in_window(time_str: str, windows: list) -> bool:
+    """هل الوقت داخل إحدى النوافذ المسموح بها؟ («07:00-09:30»)"""
+    try:
+        h, m = (int(x) for x in time_str.split(":")[:2])
+    except (ValueError, TypeError):
+        return False
+    minutes = h * 60 + m
+    for window in windows or []:
+        try:
+            start, end = window.split("-")
+            sh, sm = (int(x) for x in start.split(":"))
+            eh, em = (int(x) for x in end.split(":"))
+        except (ValueError, AttributeError):
+            continue
+        if sh * 60 + sm <= minutes <= eh * 60 + em:
+            return True
+    return False
+
+
+def learn_post_times(perf: list, persona: dict) -> dict:
+    """أفضل وقت نشر لكل منصة — داخل نوافذ الاستراتيجية وبعيّنة كافية فقط.
+
+    التعلّم يضبط الوقت ولا يعيد كتابة الاستراتيجية: الوقت الخارج عن النافذة يُرفض
+    مهما كان تفاعله، لأن منشوراً واحداً ناجحاً في وقت شاذ ليس نمطاً.
+    """
+    posting = persona.get("posting") or {}
+    windows, min_samples = posting.get("windows", {}), int(posting.get("min_samples_per_slot", 3))
+    by_platform = defaultdict(lambda: defaultdict(list))
+    for row in perf:
+        platform, when = row.get("platform"), row.get("time")
+        if platform and when:
+            by_platform[platform][when].append(engagement_rate(row))
+
+    learned = {}
+    for platform, slots in by_platform.items():
+        allowed = windows.get(platform)
+        ranked = sorted(
+            ((sum(v) / len(v), slot, len(v)) for slot, v in slots.items()
+             if len(v) >= min_samples and (not allowed or _in_window(slot, allowed))),
+            reverse=True)
+        if ranked:
+            score, slot, n = ranked[0]
+            learned[platform] = {"time": slot, "samples": n, "engagement": round(score, 4)}
+    return learned
+
+
+def best_weekdays(perf: list, n: int = 3) -> list:
+    """أفضل أيام الأسبوع — معلومة إرشادية يراجعها يحيى، لا تُطبَّق آلياً."""
+    names = ["الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت", "الأحد"]
+    buckets = defaultdict(list)
+    for row in perf:
+        try:
+            day = datetime.strptime(row["date"], "%Y-%m-%d").weekday()
+        except (ValueError, KeyError, TypeError):
+            continue
+        buckets[names[day]].append(engagement_rate(row))
+    ranked = sorted(((sum(v) / len(v), k, len(v)) for k, v in buckets.items()), reverse=True)
+    return ranked[:n]
+
+
 def best_slots(perf: list, key: str, n: int = 3) -> list:
     buckets = defaultdict(list)
     for row in perf:
@@ -136,11 +196,13 @@ def learn(args) -> None:
         raise SystemExit("لا بيانات بعد — عبّئ analytics/performance.csv أو ولّد محتوى أولاً.")
 
     weights, detail = compute_weights(perf, queue, persona)
+    post_times = learn_post_times(perf, persona)
     WEIGHTS.parent.mkdir(parents=True, exist_ok=True)
     WEIGHTS.write_text(yaml.dump({
         "generated_at": datetime.now().isoformat(timespec="seconds"),
         "samples": {"performance_rows": len(perf), "queue_rows": len(queue)},
         "pillar_multipliers": weights,
+        "best_post_times": post_times,
         "detail": detail,
     }, allow_unicode=True, sort_keys=False), encoding="utf-8")
 
@@ -151,8 +213,24 @@ def learn(args) -> None:
              "| العمود | المضاعِف | عيّنات | متوسط التفاعل | السبب |", "|---|---|---|---|---|"]
     lines += [f"| {persona['content_pillars'][p]['label_ar']} | {d['multiplier']} | {d['samples']} "
               f"| {d['engagement']} | {d['why']} |" for p, d in ranked]
-    for label, key in (("أفضل أوقات النشر", "time"), ("أفضل المنصات", "platform"),
-                       ("أفضل اللغات", "language")):
+    lines += ["", "## مواعيد النشر المعتمدة آلياً", ""]
+    if post_times:
+        lines += [f"- **{platform}**: {v['time']} "
+                  f"(تفاعل {v['engagement']} · {v['samples']} منشورات)"
+                  for platform, v in post_times.items()]
+        lines.append("")
+        lines.append("هذه المواعيد يستخدمها `generate_posts.py` تلقائياً بدل الافتراضية.")
+    else:
+        lines.append("- بيانات غير كافية بعد — تُستخدم المواعيد الافتراضية من `persona.yml`.")
+        lines.append(f"- يلزم {(persona.get('posting') or {}).get('min_samples_per_slot', 3)} "
+                     "منشورات على الأقل في الوقت نفسه لكل منصة، داخل نوافذ الاستراتيجية.")
+
+    weekdays = best_weekdays(perf)
+    lines += ["", "## أفضل أيام الأسبوع (إرشادي — راجعه وعدّل الإيقاع بنفسك)", ""]
+    lines += [f"- {k} — تفاعل {v:.4f} ({n} منشوراً)" for v, k, n in weekdays] or ["- بيانات غير كافية"]
+
+    for label, key in (("أفضل أوقات النشر (كل الأوقات بلا تصفية)", "time"),
+                       ("أفضل المنصات", "platform"), ("أفضل اللغات", "language")):
         rows = best_slots(perf, key)
         lines += ["", f"## {label}", ""]
         lines += [f"- {k} — تفاعل {v:.4f} ({n} منشوراً)" for v, k, n in rows] or ["- بيانات غير كافية"]
@@ -163,6 +241,12 @@ def learn(args) -> None:
     print(f"الأوزان: {rel(WEIGHTS)} | التقرير: {rel(REPORT)}")
     for p, d in ranked:
         print(f"  {d['multiplier']:.2f}×  {p:26} {d['why']}")
+    if post_times:
+        print("\nمواعيد النشر المتعلَّمة (ستُستخدم تلقائياً):")
+        for platform, v in post_times.items():
+            print(f"  {platform:20} {v['time']}  (تفاعل {v['engagement']} · {v['samples']} منشورات)")
+    else:
+        print("\nمواعيد النشر: بيانات غير كافية — تبقى الافتراضية من persona.yml.")
 
 
 def show(args) -> None:
