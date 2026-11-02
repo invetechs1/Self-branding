@@ -49,28 +49,31 @@ def load_config():
     return yaml.safe_load(cfg_path.read_text(encoding="utf-8"))
 
 
-# ── طبقة النشر: دالة لكل منصة تستقبل (cfg, row) — استبدلها بمنصة جدولة خارجية إن أردت ──
+# ── طبقة النشر: دالة لكل منصة تستقبل (cfg, row) وتعيد (الحالة، ملاحظة، معرّف المنشور) ──
+# معرّف المنشور يُخزَّن في عمود external_id، وبدونه يستحيل سحب المقاييس لاحقاً.
 
 def post_twitter(cfg, row):
     content = row["content"]
     import tweepy
     t = cfg.get("twitter", {})
     if not t.get("api_key"):
-        return "skip", "X API غير مهيأ"
+        return "skip", "X API غير مهيأ", ""
     client = tweepy.Client(
         consumer_key=t["api_key"], consumer_secret=t["api_secret"],
         access_token=t["access_token"], access_token_secret=t["access_token_secret"],
     )
-    reply_to = None
+    head, reply_to = None, None
     for part in [p.strip() for p in content.split("\n---\n") if p.strip()]:
         resp = client.create_tweet(text=part, in_reply_to_tweet_id=reply_to)
         reply_to = resp.data["id"]
-    return "posted", f"آخر تغريدة: {reply_to}"
+        head = head or reply_to          # رأس الثريد هو ما يفتحه الناس ويُقاس أداؤه
+    return "posted", f"رأس الثريد: {head}" + (f" · آخر تغريدة: {reply_to}"
+                                              if reply_to != head else ""), str(head)
 
 
 def post_instagram(cfg, row):
     # كاروسيل انستقرام يتطلب صوراً مصممة مسبقاً — لا يمكن أتمتته نصياً.
-    return "manual", "انشر يدوياً: صمّم الشرائح من النص في العمود content"
+    return "manual", "انشر يدوياً: صمّم الشرائح من النص في العمود content", ""
 
 
 def post_tiktok(cfg, row):
@@ -78,32 +81,33 @@ def post_tiktok(cfg, row):
     import tiktok as tk
     t = cfg.get("tiktok", {})
     if not (t.get("access_token") or t.get("refresh_token")):
-        return "skip", "تيك توك غير مربوط — شغّل: python automation/tiktok_auth.py"
+        return "skip", "تيك توك غير مربوط — شغّل: python automation/tiktok_auth.py", ""
 
     media = (row.get("media_path") or "").strip()
     if not media:
-        return "manual", "السكربت جاهز وينقصه الفيديو — صوّره وضع مساره في عمود media_path"
+        return "manual", "السكربت جاهز وينقصه الفيديو — صوّره وضع مساره في عمود media_path", ""
     video = Path(media) if Path(media).is_absolute() else ROOT / media
     if not video.exists():
-        return "error", f"ملف الفيديو غير موجود: {media}"
+        return "error", f"ملف الفيديو غير موجود: {media}", ""
 
     caption = tk.caption_for(row)
     if not caption:
-        return "error", "تعذّر استخراج كابشن — أضف سطراً يبدأ بـ (الكابشن:) أو املأ عمود caption"
+        return "error", "تعذّر استخراج كابشن — أضف سطراً يبدأ بـ (الكابشن:) أو املأ عمود caption", ""
 
     try:
         result = tk.publish(cfg, video, caption)
     except tk.TikTokError as e:
-        return "error", str(e)
+        return "error", str(e), ""
     except Exception as e:  # noqa: BLE001 — شبكة أو ملف
-        return "error", f"فشل رفع الفيديو: {e}"
+        return "error", f"فشل رفع الفيديو: {e}", ""
 
     size_mb = result["size"] / 1024 / 1024
     if result["mode"] == "inbox":
-        return "manual", (f"وصل إلى مسودات تيك توك ({size_mb:.1f} ميغابايت) — "
-                          f"افتح التطبيق وأكمل النشر · publish_id={result['publish_id']}")
-    return "posted", (f"نُشر مباشرة ({size_mb:.1f} ميغابايت) · "
-                      f"خصوصية {t.get('privacy_level', 'SELF_ONLY')} · publish_id={result['publish_id']}")
+        return ("manual", f"وصل إلى مسودات تيك توك ({size_mb:.1f} ميغابايت) — "
+                f"افتح التطبيق وأكمل النشر · publish_id={result['publish_id']}",
+                result["publish_id"])
+    return ("posted", f"نُشر مباشرة ({size_mb:.1f} ميغابايت) · "
+            f"خصوصية {t.get('privacy_level', 'SELF_ONLY')}", result["publish_id"])
 
 
 def post_linkedin(cfg, row):
@@ -111,7 +115,7 @@ def post_linkedin(cfg, row):
     import requests
     li = cfg.get("linkedin", {})
     if not li.get("access_token"):
-        return "skip", "LinkedIn API غير مهيأ"
+        return "skip", "LinkedIn API غير مهيأ", ""
     r = requests.post(
         "https://api.linkedin.com/v2/ugcPosts",
         headers={"Authorization": f"Bearer {li['access_token']}",
@@ -125,7 +129,8 @@ def post_linkedin(cfg, row):
             "visibility": {"com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"},
         }, timeout=30)
     r.raise_for_status()
-    return "posted", r.headers.get("x-restli-id", "")
+    urn = r.headers.get("x-restli-id", "") or (r.json() or {}).get("id", "")
+    return "posted", f"urn: {urn}" if urn else "نُشر", urn
 
 
 def post_article(cfg, row):
@@ -135,7 +140,7 @@ def post_article(cfg, row):
     out = ROOT / "site" / "articles" / f"{slug}.md"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(content, encoding="utf-8")
-    return "posted", f"حُفظ في {rel(out)} — ادفعه مع الموقع"
+    return "posted", f"حُفظ في {rel(out)} — ادفعه مع الموقع", str(out.name)
 
 
 PUBLISHERS = {
@@ -183,10 +188,13 @@ def main():
             print(f"#{row['id']}: منصة غير معروفة ({row['platform']}) — تُخطّى")
             continue
         try:
-            status, note = publisher(cfg, row)
+            result = publisher(cfg, row)
+            status, note, external_id = (result if len(result) == 3 else (*result, ""))
         except Exception as e:  # noqa: BLE001 — فشل منصة واحدة لا يوقف البقية
-            status, note = "error", str(e)
+            status, note, external_id = "error", str(e), ""
         row["status"] = status
+        if external_id and "external_id" in row:
+            row["external_id"] = external_id
         changed = True
         print(f"#{row['id']} {row['platform']}: {status} — {note}")
 

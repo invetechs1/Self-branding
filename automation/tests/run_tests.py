@@ -482,7 +482,7 @@ def test_tiktok(tmp: Path) -> None:
     try:
         row = {"content": "سكربت الفيديو\nالكابشن: نسبة الإنجاز ليست تقديراً",
                "media_path": str(video), "caption": ""}
-        status, note = publish.post_tiktok(cfg, row)
+        status, note, ext = publish.post_tiktok(cfg, row)
         check("الرفع في وضع inbox ينتهي بحالة manual", status == "manual", f"{status} — {note[:60]}")
         check("كل بايتات الفيديو وصلت", mock.uploaded == payload,
               f"{len(mock.uploaded)}/{len(payload)} بايت")
@@ -496,9 +496,10 @@ def test_tiktok(tmp: Path) -> None:
         mock.calls.clear()
         cfg["tiktok"]["mode"] = "direct"
         cfg["tiktok"]["privacy_level"] = "SELF_ONLY"
-        status, note = publish.post_tiktok(cfg, row)
+        status, note, ext = publish.post_tiktok(cfg, row)
         init = next((c for c in mock.calls if c[1].endswith("/video/init/")), None)
         check("النشر المباشر ينتهي بحالة posted", status == "posted", f"{status} — {note[:60]}")
+        check("معرّف المنشور يعود ليُخزَّن", ext == "v_pub_7788", ext)
         check("النشر المباشر يرسل post_info بالخصوصية والكابشن",
               bool(init) and init[2]["post_info"]["privacy_level"] == "SELF_ONLY"
               and "نسبة الإنجاز" in init[2]["post_info"]["title"])
@@ -661,6 +662,95 @@ def test_saudi_first() -> None:
           str(ramadan["date"]) if ramadan else "تعذّر — ثبّت hijridate")
     check("لكل مناسبة زاوية مرتبطة بتخصصه",
           all(o.get("angle") for o in cal["occasions"]))
+
+
+def test_fetch_metrics(tmp: Path) -> None:
+    section("14) سحب المقاييس آلياً: من المنصات إلى محرك التعلّم")
+    import fetch_metrics as FM
+
+    # منفذ X بديل — نفس منطق السحب بلا شبكة
+    class FakeTweet:
+        def __init__(self, tid, pm, npm=None):
+            self.id, self.public_metrics, self.non_public_metrics = tid, pm, npm
+
+    class FakeX:
+        def __init__(self, *a, **kw):
+            self.asked = []
+
+        def get_tweets(self, ids, tweet_fields=None):
+            self.asked.append((list(ids), tuple(tweet_fields or ())))
+            if "non_public_metrics" in (tweet_fields or []):
+                raise RuntimeError("non-public metrics need elevated access")
+            data = [FakeTweet("111", {"impression_count": 9800, "like_count": 320,
+                                      "reply_count": 41, "retweet_count": 50,
+                                      "quote_count": 8, "bookmark_count": 26})]
+            return types.SimpleNamespace(data=data)
+
+    fake = FakeX()
+    FM.X_CLIENT_FACTORY = lambda cfg: fake
+    try:
+        cfg = {"twitter": {"api_key": "k", "api_secret": "s", "access_token": "a",
+                           "access_token_secret": "b"}}
+        got = FM.fetch_x(cfg, ["111"])
+        check("مقاييس X تُسحب وتُترجم", got.get("111", {}).get("impressions") == 9800, str(got)[:70])
+        check("المشاركات تجمع إعادة النشر والاقتباس", got["111"]["shares"] == 58)
+        check("الحفظ يُلتقط", got["111"]["saves"] == 26)
+        check("يتراجع بهدوء حين تُرفض المقاييس غير العامة",
+              len(fake.asked) == 2 and "public_metrics" in fake.asked[1][1])
+        check("بلا مفاتيح لا يُستدعى شيء", FM.fetch_x({"twitter": {}}, ["1"]) == {})
+    finally:
+        FM.X_CLIENT_FACTORY = None
+
+    # دمج النتائج مع طابور حقيقي
+    queue = tmp / "q.csv"
+    qrows = [
+        {"id": "501", "date": "2026-10-05", "time": "08:00", "platform": "twitter_thread",
+         "pillar": "construction_projects", "language": "ar", "status": "posted",
+         "external_id": "111", "content": "في المقاولات، أكثر رقم نخدع فيه أنفسنا\nبقية النص"},
+        {"id": "502", "date": "2026-10-06", "time": "08:30", "platform": "linkedin_post",
+         "pillar": "government_decisions", "language": "ar", "status": "posted",
+         "external_id": "urn:li:share:77", "content": "قرار التأمينات الجديد"},
+        {"id": "503", "date": "2026-10-07", "time": "19:00", "platform": "tiktok_script",
+         "pillar": "site_quality", "language": "ar", "status": "draft",
+         "external_id": "", "content": "سكربت"},
+    ]
+    with queue.open("w", newline="", encoding="utf-8") as fh:
+        w = csv.DictWriter(fh, fieldnames=list(qrows[0]))
+        w.writeheader()
+        w.writerows(qrows)
+
+    posted = FM.posted_rows(queue)
+    check("المسودات بلا معرّف تُستبعد من القياس", len(posted) == 2, f"{len(posted)}")
+
+    metrics = {"111": {**FM.EMPTY, "impressions": 9800, "likes": 320, "comments": 41, "shares": 58},
+               "urn:li:share:77": {**FM.EMPTY, "likes": 44, "comments": 9}}
+    merged, added, _ = FM.merge(posted, metrics, {})
+    check("كل منشور يصبح صفاً في ملف الأداء", len(merged) == 2 and added == 2)
+    check("العمود واللغة والموعد تُنقل من الطابور",
+          merged["501"]["pillar"] == "construction_projects" and merged["501"]["time"] == "08:00")
+    check("الخطّاف يُستخرج من أول سطر",
+          merged["501"]["hook"].startswith("في المقاولات"), merged["501"]["hook"][:40])
+    check("مصدر الرقم موسوم", merged["501"]["source"] == "api")
+
+    # الانطباعات اليدوية لا تُمحى بواجهة لا تعطيها
+    existing = {"502": {"id": "502", "impressions": "4200", "hook": "خطّاف يدوي",
+                        "source": "manual"}}
+    merged2, _, _ = FM.merge(posted, metrics, existing)
+    check("انطباعات لينكدإن اليدوية تبقى", merged2["502"]["impressions"] == "4200")
+    check("الإعجابات المسحوبة تُحدَّث فوقها", merged2["502"]["likes"] == 44)
+    check("الصف يُوسم بأنه مختلط", merged2["502"]["source"] == "api+manual")
+    check("الخطّاف اليدوي لا يُستبدل", merged2["502"]["hook"] == "خطّاف يدوي")
+
+    # الكتابة والقراءة ثم التعلّم منها
+    perf = tmp / "perf.csv"
+    FM.write_perf(merged, perf)
+    back = FM.read_perf(perf)
+    check("الكتابة والقراءة بلا فقد", set(back) == {"501", "502"})
+
+    import feedback as F
+    rate = F.engagement_rate(back["501"])
+    check("محرك التعلّم يقرأ الصف المسحوب", rate > 0, f"تفاعل {rate:.4f}")
+    check("صف بلا انطباعات لا يفسد الحساب", F.engagement_rate(back["502"]) == 0.0)
 
 
 def test_data_stories(tmp: Path) -> None:
@@ -901,7 +991,7 @@ def test_repo_integrity() -> None:
               for p in AUTOMATION.rglob("*.py"))))
     for script in ("persona.py", "news_engine.py", "generate_posts.py", "publish.py",
                    "feedback.py", "tiktok.py", "tiktok_auth.py", "gov_watch.py",
-                   "calendar_sa.py", "data_stories.py"):
+                   "calendar_sa.py", "data_stories.py", "fetch_metrics.py"):
         check(f"{script} يُحلَّل بلا أخطاء نحوية",
               compile((AUTOMATION / script).read_text(encoding="utf-8"), script, "exec") is not None)
 
@@ -934,6 +1024,7 @@ def main() -> int:
         test_gov_watch(tmp)
         test_learned_times(tmp)
         test_data_stories(tmp)
+        test_fetch_metrics(tmp)
         test_repo_integrity()
     finally:
         server.stop()

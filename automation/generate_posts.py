@@ -35,7 +35,7 @@ ROOT = Path(__file__).resolve().parent.parent
 QUEUE = ROOT / "automation" / "queue" / "queue.csv"
 QUEUE_FIELDS = ["id", "date", "time", "platform", "pillar", "content_type", "language",
                 "approval_level", "review_notes", "relevance", "source_url", "content",
-                "caption", "media_path", "media_note", "status"]
+                "caption", "media_path", "media_note", "status", "external_id"]
 
 # صيغ تحتاج ملفاً بصرياً قبل النشر (تيك توك وانستقرام ينشران وسائط لا نصاً)
 MEDIA_FORMATS = ("tiktok_script", "instagram_carousel")
@@ -226,7 +226,7 @@ def build_row(uid: int, date, platform: str, content: str, persona: dict, *,
         "source_url": source_url, "content": content,
         "caption": tiktok.extract_caption(content) if platform in MEDIA_FORMATS else "",
         "media_path": "", "media_note": media_note,
-        "status": "draft",
+        "status": "draft", "external_id": "",
     }
 
 
