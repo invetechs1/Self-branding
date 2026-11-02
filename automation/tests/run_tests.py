@@ -664,6 +664,116 @@ def test_saudi_first() -> None:
           all(o.get("angle") for o in cal["occasions"]))
 
 
+def test_reply_radar(tmp: Path) -> None:
+    section("16) رادار الردود: يقترح ولا يرد أبداً")
+    import reply_radar as RR
+    persona, now = P.load_persona(), datetime.now(timezone.utc)
+
+    # الضمان البنيوي قبل أي شيء
+    source = (AUTOMATION / "reply_radar.py").read_text(encoding="utf-8")
+    check("لا دالة نشر رد في الكود إطلاقاً",
+          "create_tweet" not in source and "def post_" not in source)
+    check("لا استيراد لطبقة النشر", "import publish" not in source)
+
+    def tweet(tid, text, likes=20, replies=6, retweets=4, hours=2):
+        return {"id": str(tid), "text": text, "author_id": "9",
+                "created_at": now - timedelta(hours=hours),
+                "metrics": {"like_count": likes, "reply_count": replies,
+                            "retweet_count": retweets, "quote_count": 0},
+                "url": f"https://x.com/i/web/status/{tid}"}
+
+    items = [
+        tweet(1, "تحديث تصنيف المقاولين الجديد وأثره على المستخلصات ومقاولي الباطن"),
+        tweet(2, "جدل سياسي حول قضية ودعوى قضائية", likes=400, replies=200),
+        tweet(3, "وصفة كيكة الشوكولاتة بالصور", likes=900, replies=120),
+        tweet(4, "منصة قوى تضيف خدمة لتوثيق عقود العمالة في المقاولات", hours=1, likes=60),
+        tweet(5, "كود البناء السعودي واشتراطات السلامة في المواقع", likes=1, replies=0, retweets=0),
+        tweet(6, "تأخر المشاريع وأسبابه الحقيقية في القطاع", hours=30),
+    ]
+    rules = {"max_age_hours": 6, "min_engagement": 5, "max_suggestions_per_day": 10,
+             "skip_if_replied": True, "avoid_controversy": True}
+    kept, dropped = RR.shortlist(items, persona, rules, seen=set(), now=now)
+    kept_ids = [k["id"] for k in kept]
+    reasons = {it["id"]: why for it, why in dropped}
+
+    check("المنشور داخل أنشطتك يُرشَّح", "1" in kept_ids and "4" in kept_ids, str(kept_ids))
+    check("الجدلي والسياسي يُستبعد", "2" in reasons and "حساس" in reasons["2"], reasons.get("2", "—"))
+    check("خارج الأنشطة يُستبعد", reasons.get("3") == "خارج أنشطتك الستة", reasons.get("3", "—"))
+    check("التفاعل الضعيف يُستبعد", "تفاعل ضعيف" in reasons.get("5", ""), reasons.get("5", "—"))
+    check("القديم يُستبعد (نافذة الرد تُغلق)", "مضى عليه" in reasons.get("6", ""), reasons.get("6", "—"))
+    check("الأحدث والأسرع تفاعلاً يتصدر", kept[0]["id"] == "4", kept[0]["id"])
+    check("لكل مرشح زاوية رد من خبرته", all(k["angle"] for k in kept))
+    # الخاصية الحقيقية: الزاوية تتبع الموضوع الغالب لا ترتيب الإعدادات
+    gov = RR.score_candidate(
+        tweet(7, "وزارة الموارد البشرية تصدر قراراً وزارياً بلائحة تنفيذية وتعميماً "
+                 "على المنشآت اعتباراً من يناير"), persona, now)
+    site = RR.score_candidate(
+        tweet(8, "تشققات وعيوب تنفيذ ورطوبة في واجهات مبنى وأخطاء العزل"), persona, now)
+    check("الموضوع الحكومي الغالب يأخذ زاوية الترجمة العملية",
+          gov["activities"][0] == "government_decisions" and "القرار عملياً" in gov["angle"],
+          f"{gov['activities'][:2]} → {gov['angle'][:40]}")
+    check("موضوع عيوب البناء يأخذ زاوية السبب الهندسي",
+          site["activities"][0] == "site_quality" and "الهندسي" in site["angle"],
+          f"{site['activities'][:2]} → {site['angle'][:40]}")
+    check("الزوايا تختلف باختلاف الموضوع الغالب",
+          len({gov["angle"], site["angle"], kept[0]["angle"]}) == 3)
+
+    seen_before = RR.shortlist(items, persona, rules, seen={"1", "4"}, now=now)[0]
+    check("ما رددتَ عليه لا يتكرر", not {"1", "4"} & {k["id"] for k in seen_before})
+
+    capped = RR.shortlist([tweet(100 + i, f"تصنيف المقاولين رقم {i}") for i in range(25)],
+                          persona, {**rules, "max_suggestions_per_day": 10}, set(), now)[0]
+    check("سقف الاقتراحات اليومي يُحترم", len(capped) == 10, f"{len(capped)}")
+
+    # سجل ما رُدّ عليه
+    old_seen = RR.SEEN
+    try:
+        RR.SEEN = tmp / "replied.jsonl"
+        RR.mark_seen(["1", "4"])
+        check("التعليم يُحفظ ويُقرأ", RR.load_seen() == {"1", "4"}, str(RR.load_seen()))
+        RR.mark_seen(["9"])
+        check("الإضافة لا تمحو السابق", RR.load_seen() == {"1", "4", "9"})
+    finally:
+        RR.SEEN = old_seen
+
+    report = RR.build_report(kept, dropped, persona)
+    check("التقرير يذكّر بأن الكتابة عليه هو", "اكتب ردك بنفسك" in report)
+    check("التقرير يعطي الرابط والزاوية", "زاوية ردك" in report and "https://x.com" in report)
+    check("التقرير يشرح أسباب الاستبعاد", "مستبعدون وأسبابهم" in report)
+
+    # منفذ X بديل: يثبت أن مسار الجلب يعمل بلا شبكة
+    class FakeTw:
+        def __init__(self, tid, text, created, metrics):
+            self.id, self.text, self.created_at = tid, text, created
+            self.public_metrics, self.author_id, self.lang = metrics, "7", "ar"
+
+    class FakeClient:
+        def __init__(self, *a, **kw):
+            self.queries = []
+
+        def search_recent_tweets(self, query, max_results=10, tweet_fields=None):
+            self.queries.append(query)
+            return types.SimpleNamespace(data=[FakeTw(
+                "777", "تصنيف المقاولين وتأثيره على المستخلصات",
+                now - timedelta(hours=1),
+                {"like_count": 30, "reply_count": 9, "retweet_count": 5, "quote_count": 1})])
+
+    fake = FakeClient()
+    RR.X_CLIENT_FACTORY = lambda cfg: fake
+    try:
+        got = RR.fetch_x_candidates({"twitter": {"api_key": "k", "api_secret": "s",
+                                                 "access_token": "a", "access_token_secret": "b"}},
+                                    ["تصنيف المقاولين", "منصة قوى"], [])
+        check("مسار الجلب يبني استعلاماً ويعيد منشورات", len(got) == 1 and got[0]["id"] == "777")
+        check("الاستعلام يستبعد إعادة النشر والردود",
+              "-is:retweet" in fake.queries[0] and "-is:reply" in fake.queries[0])
+        check("الاستعلام عربي", "lang:ar" in fake.queries[0])
+        check("بلا مفاتيح لا يُستدعى شيء",
+              RR.fetch_x_candidates({"twitter": {}}, ["x"], []) == [])
+    finally:
+        RR.X_CLIENT_FACTORY = None
+
+
 def test_attribution(tmp: Path) -> None:
     section("15) الفرص الواردة: قياس الهدف لا الضجيج")
     import attribution as A
@@ -1078,7 +1188,8 @@ def test_repo_integrity() -> None:
               for p in AUTOMATION.rglob("*.py"))))
     for script in ("persona.py", "news_engine.py", "generate_posts.py", "publish.py",
                    "feedback.py", "tiktok.py", "tiktok_auth.py", "gov_watch.py",
-                   "calendar_sa.py", "data_stories.py", "fetch_metrics.py", "attribution.py"):
+                   "calendar_sa.py", "data_stories.py", "fetch_metrics.py", "attribution.py",
+                   "reply_radar.py"):
         check(f"{script} يُحلَّل بلا أخطاء نحوية",
               compile((AUTOMATION / script).read_text(encoding="utf-8"), script, "exec") is not None)
 
@@ -1113,6 +1224,7 @@ def main() -> int:
         test_data_stories(tmp)
         test_fetch_metrics(tmp)
         test_attribution(tmp)
+        test_reply_radar(tmp)
         test_repo_integrity()
     finally:
         server.stop()
