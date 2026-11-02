@@ -28,7 +28,7 @@
 
 | المجلد | الوظيفة |
 |--------|---------|
-| `profile/` | ملف الحقائق + الشخصية الرقمية (`persona.yml` للكود، `persona-spec.md` للبشر) |
+| `profile/` | ملف الحقائق + الشخصية الرقمية + عيّنات صوتك (`voice-samples.md`) |
 | `strategy/` | استراتيجية العلامة، خارطة طريق 12 شهراً، خطة SEO، أدلة المنصات |
 | `content/` | قوالب المحتوى + بنك الأفكار + رزنامة المناسبات السعودية |
 | `automation/` | محرك الاستخبارات: اكتشاف الأخبار وترتيبها → توليد المحتوى → النشر المجدول → التعلّم |
@@ -54,7 +54,7 @@
 4. جهّز مفاتيح الـ API (انظر `automation/README.md`).
 5. شغّل:
    ```bash
-   python automation/tests/run_tests.py            # اختبار النظام كاملاً (116 فحصاً، بلا مفاتيح)
+   python automation/tests/run_tests.py            # اختبار النظام كاملاً (127 فحصاً، بلا مفاتيح)
    python automation/news_engine.py --discover     # اكتشاف وترتيب أخبار اليوم
    python automation/generate_posts.py --from-news # مسودات موسومة بمستوى الاعتماد
    ```

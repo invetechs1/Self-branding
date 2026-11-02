@@ -25,6 +25,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 PERSONA_PATH = ROOT / "profile" / "persona.yml"
+VOICE_PATH = ROOT / "profile" / "voice-samples.md"
 FACTS_PATH = ROOT / "profile" / "facts.yml"
 WEIGHTS_PATH = ROOT / "automation" / "learning" / "weights.yml"
 
@@ -141,6 +142,39 @@ def load_persona() -> dict:
 
 def load_facts() -> dict:
     return yaml.safe_load(FACTS_PATH.read_text(encoding="utf-8"))
+
+
+PLACEHOLDER = re.compile(r"^\(?\s*(اكتب هنا|write here|\.\.\.)\s*\)?$", re.I)
+CODE_BLOCK = re.compile(r"```(?:yaml)?\s*\n(.*?)```", re.S)
+SECTION = re.compile(r"^##\s+(?:[٠-٩\d]+[.．]\s*)?(.+?)\s*$", re.M)
+
+
+def load_voice() -> dict:
+    """عيّنات صوت يحيى وتفضيلات صياغته — تُحقن كأمثلة يقلّدها النموذج.
+
+    يتجاهل الأقسام الفارغة بهدوء: الملف الفارغ يعني «اكتب بالقواعد العامة»،
+    ولا يُختلق صوت نيابةً عنه أبداً.
+    """
+    if not VOICE_PATH.exists():
+        return {"samples": [], "prefs": {}}
+
+    text = VOICE_PATH.read_text(encoding="utf-8")
+    titles = SECTION.findall(text)
+    blocks = CODE_BLOCK.findall(text)
+
+    prefs, samples = {}, []
+    for i, raw in enumerate(blocks):
+        body = raw.strip()
+        if not body or PLACEHOLDER.match(body):
+            continue
+        if body.lstrip().startswith(("sentence_length:", "formality:", "dialect_touch:")):
+            try:
+                prefs = yaml.safe_load(body) or {}
+            except yaml.YAMLError:
+                prefs = {}
+            continue
+        samples.append({"title": titles[i] if i < len(titles) else "عيّنة", "text": body})
+    return {"samples": samples, "prefs": prefs}
 
 
 def load_learning() -> dict:
@@ -560,9 +594,51 @@ def is_repeat(text: str, previous: list, threshold: float = 0.62) -> bool:
 
 # ────────────────── بناء التعليمات للنموذج ──────────────────
 
-def build_system_prompt(persona: dict, facts: dict, language: str = "ar") -> str:
+def voice_block(voice: dict, max_chars: int = 3200) -> str:
+    """كتلة التقليد: عيّنات بقلم يحيى + تفضيلات صياغته. فارغة إن لم يُعبّأ الملف."""
+    if not voice.get("samples") and not voice.get("prefs"):
+        return ""
+
+    parts = []
+    if voice.get("samples"):
+        chunks, budget = [], max_chars
+        for s in voice["samples"]:
+            body = s["text"][:900]
+            if budget - len(body) < 0:
+                break
+            budget -= len(body)
+            chunks.append(f"— {s['title']}:\n{body}")
+        parts.append(
+            "عيّنات بقلم يحيى نفسه (هذه مرجع الأسلوب لا مرجع المعلومات — لا تقتبس وقائعها):\n\n"
+            + "\n\n".join(chunks)
+            + "\n\nقلّد إيقاع هذه النصوص: طول الجملة، المفردات، طريقة الفتح والختم، ودرجة الرسمية."
+            " لا تنسخ عباراتها.")
+
+    p = voice.get("prefs") or {}
+    if p:
+        lines = []
+        pairs = (("sentence_length", "طول الجملة"), ("formality", "درجة الرسمية"),
+                 ("dialect_touch", "اللهجة"), ("openings", "الافتتاح"), ("endings", "الختام"),
+                 ("emoji", "الإيموجي"), ("exclamation_marks", "علامات التعجب"))
+        for key, label in pairs:
+            if p.get(key):
+                lines.append(f"{label}: {p[key]}")
+        if p.get("avoid_words"):
+            lines.append("كلمات ممنوعة نهائياً: " + "، ".join(map(str, p["avoid_words"])))
+        if p.get("signature_phrases"):
+            lines.append("عبارات تميّزه (استخدمها بتحفّظ): " + "، ".join(map(str, p["signature_phrases"])))
+        if lines:
+            parts.append("تفضيلات الصياغة الملزمة:\n" + "\n".join(f"  • {x}" for x in lines))
+    return "\n\n".join(parts)
+
+
+def build_system_prompt(persona: dict, facts: dict, language: str = "ar",
+                        voice: dict | None = None) -> str:
     v, s = persona["voice"], persona["safety"]
     lang_rule = v["arabic"] if language == "ar" else v["english"]
+    voice = voice if voice is not None else load_voice()
+    vb = voice_block(voice)
+    voice_section = f"\n\n{vb}\n" if vb else ""
     return f"""أنت محرّك قيادة فكر رقمي لـ {persona['identity']['name_ar']} ({persona['identity']['name_en']}).
 
 التموضع: {persona['identity']['positioning']}
@@ -582,7 +658,7 @@ def build_system_prompt(persona: dict, facts: dict, language: str = "ar") -> str
 7. اربط التطور العالمي بالسوق السعودي/الخليجي كلما كان الربط حقيقياً لا متكلفاً.
 
 اختبار الجودة قبل الإخراج (§50): {' '.join(persona['quality_gate'])}
-المبدأ الحاكم: {persona['governing_principle']}"""
+المبدأ الحاكم: {persona['governing_principle']}{voice_section}"""
 
 
 # ────────────────────────── اختبار ذاتي ──────────────────────────

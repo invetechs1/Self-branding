@@ -521,6 +521,71 @@ def test_tiktok(tmp: Path) -> None:
         mock.stop()
 
 
+def test_voice(tmp: Path) -> None:
+    section("10) صوت يحيى: العيّنات تُحقن، والفارغ يُتجاهل بهدوء")
+    persona, facts = P.load_persona(), P.load_facts()
+
+    # الملف كما يُسلَّم (عناوين وقوالب فارغة): لا يخترع صوتاً
+    shipped = P.load_voice()
+    check("الفراغات النموذجية لا تُقرأ كعيّنات", shipped["samples"] == [],
+          f"{len(shipped['samples'])} عيّنة")
+    check("تفضيلات الصياغة الافتراضية تُقرأ", bool(shipped["prefs"].get("sentence_length")))
+
+    sample_file = tmp / "voice.md"
+    sample_file.write_text("""# عيّنات
+
+## ١. كيف تشرح مشكلة فنية
+```
+المستخلص تأخر لأن المقاس ما طابق المخطط. صوّرنا، وثّقنا، وأرسلنا للاستشاري نفس اليوم.
+```
+
+## ٢. كيف تختلف مع رأي سائد
+```
+(اكتب هنا)
+```
+
+## ٣. درس من تعثّر
+```
+خسرت شهراً كاملاً لأني وثقت بتقدير شفهي. اليوم ما أعتمد رقماً بلا مستند.
+```
+
+## تفضيلات الصياغة
+```yaml
+sentence_length: "قصيرة"
+formality: "مهني قريب"
+emoji: "لا"
+avoid_words: ["نقلة نوعية", "ثورة"]
+```
+""", encoding="utf-8")
+
+    original = P.VOICE_PATH
+    try:
+        P.VOICE_PATH = sample_file
+        v = P.load_voice()
+        check("العيّنات المكتوبة تُقرأ", len(v["samples"]) == 2, f"{len(v['samples'])}")
+        check("القالب الفارغ بينها يُتخطّى",
+              all("اكتب هنا" not in s["text"] for s in v["samples"]))
+        check("عناوين الأقسام تُلتقط مع العيّنة",
+              "مشكلة فنية" in v["samples"][0]["title"])
+        check("التفضيلات تُقرأ كـ YAML لا كعيّنة", v["prefs"].get("sentence_length") == "قصيرة")
+
+        prompt = P.build_system_prompt(persona, facts, "ar", v)
+        check("العيّنة تدخل تعليمات النموذج", "المستخلص تأخر" in prompt)
+        check("الكلمات الممنوعة تصل كقاعدة ملزمة", "نقلة نوعية" in prompt)
+        check("التعليمات تمنع اقتباس وقائع العيّنات",
+              "لا مرجع المعلومات" in prompt or "لا تقتبس وقائعها" in prompt)
+        check("طول التعليمات يبقى معقولاً", len(prompt) < 9000, f"{len(prompt)} حرفاً")
+
+        empty = tmp / "empty.md"
+        empty.write_text("# لا شيء\n", encoding="utf-8")
+        P.VOICE_PATH = empty
+        bare = P.build_system_prompt(persona, facts, "ar", P.load_voice())
+        check("بلا عيّنات: التعليمات تعمل بالقواعد العامة",
+              "عيّنات بقلم يحيى" not in bare and "قواعد لا تُكسر" in bare)
+    finally:
+        P.VOICE_PATH = original
+
+
 def test_saudi_first() -> None:
     section("9) السعودية أولاً: الأنشطة الستة، والمطابقة العربية، والمناسبات")
     import calendar_sa
@@ -645,6 +710,7 @@ def main() -> int:
         test_weekly_report(tmp)
         test_tiktok(tmp)
         test_saudi_first()
+        test_voice(tmp)
         test_repo_integrity()
     finally:
         server.stop()
