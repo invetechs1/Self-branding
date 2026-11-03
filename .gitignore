@@ -6,3 +6,8 @@ automation/config.yml
 __pycache__/
 *.pyc
 .DS_Store
+
+# مخرجات أدوات المقاطع (تُولَّد بالتشغيل)
+docs/videos/tools/*.html
+docs/videos/tools/*.png
+docs/videos/**/_raw/
