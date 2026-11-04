@@ -51,6 +51,25 @@ def test_freshness_decays_and_expires(persona):
     old.published = now - timedelta(hours=persona["thresholds"]["freshness_max_age_hours"] + 1)
     stale = score_article(old, persona, now)
     assert stale.scores["freshness"] == 0.0
+    # This article is strong enough that both versions pin at the 100 cap once the
+    # Saudi-first multipliers apply, so the decay is asserted on the uncapped weighted
+    # base. See KNOWN ISSUE in docs/backend-port-guide-EN.md: the cap costs ranking
+    # resolution among the strongest stories and should be revisited product-wide.
+    assert stale.scores["base"] < fresh.scores["base"]
+
+
+def test_freshness_visible_in_total_for_a_mid_range_story(persona):
+    """Same property on a story that does not hit the cap — guards the user-visible score."""
+    from datetime import timedelta
+    now = utcnow()
+    article = Article(title="Contractors adopt digital twin tools on infrastructure projects",
+                      summary="A productivity study.", source="enr",
+                      source_type="industry_publication", published=now)
+    fresh = score_article(article, persona, now)
+    older = article.model_copy(deep=True)
+    older.published = now - timedelta(hours=48)
+    stale = score_article(older, persona, now)
+    assert fresh.scores["total"] < 100.0
     assert stale.scores["total"] < fresh.scores["total"]
 
 

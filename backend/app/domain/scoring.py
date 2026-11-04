@@ -3,9 +3,17 @@
 Ported from ``automation/persona.py::score_story`` and its component functions.
 Formula matches ``docs/technical-requirements.md`` § 4 exactly:
 
-    relevance = (25*personal_interest + 20*business_relevance + 15*saudi_gcc
-                + 15*strategic_importance + 10*audience_value + 10*freshness
-                + 5*source_credibility) * leadership_boost * learning_multiplier
+    relevance = (w.personal_interest*personal_interest + w.business_relevance*business_relevance
+                + w.saudi_gcc_relevance*saudi_gcc + w.strategic_importance*strategic_importance
+                + w.audience_value*audience_value + w.freshness*freshness
+                + w.source_credibility*source_credibility)
+                * leadership_boost * learning_multiplier * saudi_first
+
+Weights come from ``profile/persona.yml -> relevance_weights`` (currently Saudi/GCC 28 —
+the heaviest component), never hardcoded. ``saudi_first`` is the post-weighting policy
+from ``persona.yml -> saudi_first``: it boosts stories inside Yahya's six declared
+activities, discounts global stories that carry no Saudi signal, and prefers Arabic
+sources. Ported from ``automation/persona.py::score_story``.
 """
 
 from __future__ import annotations
@@ -66,6 +74,27 @@ _PILLAR_ALIAS = {"AI": "ai_technology", "Construction": "construction_projects",
         "Traditional Industries": "construction_projects"}
 
 
+def activity_hits(article: Article, persona: dict) -> list:
+    """Which of the six declared Saudi activities the article falls into
+    (persona.yml -> saudi_activities). Ordered by match strength x activity weight,
+    so the dominant topic — not config order — decides the pillar and the angle."""
+    out = []
+    for key, spec in (persona.get("saudi_activities") or {}).items():
+        found = hits(article.text, spec.get("keywords", []))
+        if found:
+            out.append({"key": key, "label": spec.get("label_ar", key),
+                        "pillar": spec.get("pillar", "saudi_economy"),
+                        "weight": float(spec.get("weight", 1.0)), "hits": len(found)})
+    return sorted(out, key=lambda a: -a["hits"] * a["weight"])
+
+
+def is_arabic(text: str) -> bool:
+    letters = [c for c in text if c.isalpha()]
+    if not letters:
+        return False
+    return sum(1 for c in letters if "\u0600" <= c <= "\u06ff") / len(letters) > 0.4
+
+
 def _interest_hits(text: str, terms, persona: dict) -> list:
     aliases = persona.get("interest_aliases", {})
     return [term for term in terms if hits(text, [term] + list(aliases.get(term, [])))]
@@ -78,6 +107,15 @@ def personal_interest_score(article: Article, persona: dict) -> tuple[float, lis
         found = _interest_hits(article.text, graph[tier], persona)
         matched += found
         total += weight * saturate(len(found), 3)
+
+    # A declared activity is an explicit interest: a ministry decision aimed at
+    # contractors must not score zero just because it is written in Arabic and
+    # never spells out an interest-graph term.
+    acts = activity_hits(article, persona)
+    if acts:
+        best = max(a["weight"] * saturate(a["hits"], 2) for a in acts)
+        total = max(total, min(1.0, best + 0.15 * (len(acts) - 1)))
+        matched += [a["label"] for a in acts]
     return min(1.0, total), matched
 
 
@@ -98,9 +136,20 @@ def saudi_gcc_score(article: Article, persona: dict) -> tuple[float, str]:
             w = geo["priority"].get(region, 0.4)
             if w > best:
                 best, best_region = w, region
-    if hits(article.text, persona["saudi_watchlist"]):
+    # A Saudi government body named in the text is conclusive evidence of a Saudi story.
+    # saudi_watchlist is deliberately NOT used here: it lists topics ("Infrastructure",
+    # "Tourism", "Logistics"), not places, so any global story matching one of those words
+    # used to be scored as Saudi — which silently defeated the Saudi-first policy.
+    if hits(article.text, persona.get("government_watchlist", [])):
         best = max(best, geo["priority"]["saudi_arabia"])
         best_region = "saudi_arabia"
+
+    # Nothing in the text? The source settles it: a Saudi ministry's own news page is
+    # Saudi even when the headline never says so.
+    if not best:
+        hinted = article.meta.get("feed_region")
+        if hinted in geo["priority"]:
+            return geo["priority"][hinted], hinted
     return best or geo["priority"]["global"], best_region
 
 
@@ -170,9 +219,40 @@ def score_article(article: Article, persona: dict, now: datetime | None = None,
             + w["audience_value"] * audience + w["freshness"] * fresh
             + w["source_credibility"] * cred)
 
-    pillar = pillar_of(article, persona)
+    activities = activity_hits(article, persona)
+    pillar = activities[0]["pillar"] if activities else pillar_of(article, persona)
+    # An announcement from a government body is a government-decisions story first,
+    # however many contracting words the headline also contains.
+    if article.meta.get("gov_entity") or (
+            hits(article.text, persona.get("government_watchlist", []))
+            and any(a["key"] == "government_decisions" for a in activities)):
+        pillar = "government_decisions"
+
     boost, intersection = leadership_boost(article, persona)
     multiplier = boost * float(learning.get(pillar, 1.0))
+
+    # Saudi-first policy (persona.yml -> saudi_first): applied after the weighted base,
+    # so global noise cannot outrank a Saudi story that matters to Yahya's audience.
+    sf = persona.get("saudi_first") or {}
+    saudi_note = ""
+    if sf.get("enabled", True):
+        if activities:
+            multiplier *= float(sf.get("activity_match_boost", 1.15))
+        if geo <= persona["geography"]["priority"]["global"]:
+            ai_only = bool(activities) and all(a["key"] == "artificial_intelligence" for a in activities)
+            if ai_only:
+                factor = float(sf.get("global_ai_exemption", 0.8))
+                saudi_note = "ذكاء اصطناعي عالمي — يحتاج ربطاً سعودياً"
+            elif activities:
+                factor = float(sf.get("activity_no_saudi_multiplier", 0.75))
+                saudi_note = "مرجع عالمي داخل أنشطتك — اربطه بالسوق السعودي"
+            else:
+                factor = float(sf.get("no_saudi_signal_multiplier", 0.45))
+                saudi_note = "بلا إشارة سعودية ولا نشاط من أنشطتك"
+            multiplier *= factor
+        if is_arabic(article.title):
+            multiplier *= float(sf.get("arabic_source_boost", 1.08))
+
     total = round(min(100.0, base * multiplier), 1)
 
     article.scores = {"total": total, "base": round(base, 1), "personal_interest": round(interest, 2),
@@ -181,6 +261,9 @@ def score_article(article: Article, persona: dict, now: datetime | None = None,
                       "freshness": round(fresh, 2), "credibility": round(cred, 2),
                       "multiplier": round(multiplier, 2)}
     article.meta.update({"pillar": pillar, "pillars": pillars_ranked(article)[:3],
+                         "activities": [a["label"] for a in activities],
+                         "activity_keys": [a["key"] for a in activities],
+                         "saudi_note": saudi_note, "arabic": is_arabic(article.title),
                          "region": region, "domains": domains,
                          "interest_hits": interest_hits[:8], "intersection": intersection})
     return article

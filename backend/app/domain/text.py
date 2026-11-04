@@ -39,14 +39,46 @@ def normalize(text: str) -> str:
     return re.sub(r"\s+", " ", text)
 
 
+# Arabic glues prepositions and conjunctions onto the word itself: "بالرياض" (in Riyadh),
+# "للمقاولين" (for contractors), "والمقاولات" (and contracting). Stripping the standalone
+# definite article in normalize() does not reach those — the "ال" there sits behind ب/ل/و/ك,
+# so a bare keyword like "الرياض" never matched the most common way Arabic news writes it.
+# Ported from automation/persona.py::_ar_pattern (CLI reference behavior).
+_AR_RANGE = "؀-ۿ"
+_AR_PREFIX = r"(?:[وفبكل]{0,2}(?:ال)?)"
+# Deliberately excludes a bare "ه": "رياضه" (his sport) must not match "رياض".
+_AR_SUFFIX = r"(?:ات|ين|ون|ها|هم|هن|كم|يه|يت)?"
+
+
+def _is_arabic_term(t: str) -> bool:
+    return any("؀" <= c <= "ۿ" for c in t)
+
+
+def _ar_pattern(t: str) -> str:
+    """Prefix/suffix tolerant pattern: "مقاول" matches "للمقاولين", "الرياض" matches "بالرياض"."""
+    core = t[2:] if t.startswith("ال") and len(t) > 4 else t
+    return rf"(?<![{_AR_RANGE}\w]){_AR_PREFIX}{re.escape(core)}{_AR_SUFFIX}(?![{_AR_RANGE}])"
+
+
 def hits(text: str, terms) -> list:
-    """Terms present in text — whole-word match for short terms, substring for compound ones."""
+    """Terms present in text.
+
+    Arabic is matched tolerantly against attached articles/prepositions (the single
+    biggest source of missed Saudi keywords); English keeps whole-word matching for
+    short terms and substring for compound ones.
+    """
     found = []
     for term in terms:
         t = normalize(str(term))
         if not t:
             continue
-        if " " in t or len(t) > 6:
+        if _is_arabic_term(t):
+            if " " in t:
+                if t in text:
+                    found.append(term)
+            elif re.search(_ar_pattern(t), text):
+                found.append(term)
+        elif " " in t or len(t) > 6:
             if t in text:
                 found.append(term)
         elif re.search(rf"(?<![\w؀-ۿ]){re.escape(t)}(?![\w؀-ۿ])", text):
