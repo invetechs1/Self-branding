@@ -7,7 +7,7 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.db.models import ContentOpportunity, Trend
+from app.db.models import ContentOpportunity, Pillar, Trend
 
 
 class OpportunityRepository:
@@ -37,7 +37,8 @@ class TrendRepository:
 
     def create(self, *, pillar: str, headline: str, article_ids: list[uuid.UUID],
               strength: float) -> Trend:
-        row = Trend(pillar=pillar, headline=headline, article_ids=article_ids, strength=strength)
+        known = pillar if self.session.get(Pillar, pillar) is not None else None  # FK-safe
+        row = Trend(pillar=known, headline=headline, article_ids=article_ids, strength=strength)
         self.session.add(row)
         return row
 

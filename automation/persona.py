@@ -39,7 +39,7 @@ PILLAR_TERMS = {
     "ai_technology": [
         "ذكاء اصطناعي", "نموذج لغوي", "وكيل ذكي", "أتمتة", "تعلم آلي", "سدايا", "رؤية حاسوبية",
         "تحول رقمي", "برمجيات", "منصة رقمية", "مركز بيانات", "روبوت", "نظام ذكي",
-        "artificial intelligence", "ai agent", "llm", "automation", "machine learning", "erp",
+        "artificial intelligence", "ai", "ai agent", "llm", "automation", "machine learning", "erp",
         "saas", "copilot", "computer vision", "data center", "digital twin", "bim"],
     "government_decisions": [
         "وزارة الموارد البشرية", "التأمينات الاجتماعية", "وزارة التجارة", "الزكاة والضريبة",
@@ -322,9 +322,10 @@ def is_arabic(text: str) -> bool:
 
 def pillars_ranked(story: Story) -> list:
     """أعمدة المحتوى مرتّبة حسب قوة تطابقها مع القصة (§25)."""
-    ranked = sorted(((len(_hits(story.text, terms)), p) for p, terms in PILLAR_TERMS.items()),
+    # ties break by declaration order (the persona's priority order), not alphabetically
+    ranked = sorted(((len(_hits(story.text, terms)), -i, p) for i, (p, terms) in enumerate(PILLAR_TERMS.items())),
                     reverse=True)
-    return [p for n, p in ranked if n] or ["ai_technology"]
+    return [p for n, _, p in ranked if n] or ["ai_technology"]
 
 
 def pillar_of(story: Story, persona: dict) -> str:

@@ -188,6 +188,10 @@ const dict = {
       construction_engineering: "Construction & Engineering", real_estate: "Real Estate Development",
       saudi_economy: "Saudi Economy & Vision 2030", business_management: "Business Management",
       investment: "Investment", leadership_lessons: "Leadership & Lessons",
+      // current pillars (profile/persona.yml); the keys above are kept for older posts
+      construction_projects: "Construction & Projects", government_decisions: "Government Decisions & Regulations",
+      site_quality: "Site Workers & Construction Quality", saudi_trends: "Saudi Trends",
+      occasions: "Official Occasions", business_leadership: "Business & Leadership",
     },
   },
   ar: {
@@ -373,6 +377,9 @@ const dict = {
       construction_engineering: "البناء والهندسة", real_estate: "التطوير العقاري",
       saudi_economy: "الاقتصاد السعودي ورؤية 2030", business_management: "إدارة الأعمال",
       investment: "الاستثمار", leadership_lessons: "القيادة والدروس المستفادة",
+      construction_projects: "عالم المقاولات والمشاريع", government_decisions: "القرارات الحكومية والأنظمة",
+      site_quality: "عامل البناء وأخطاء البناء", saudi_trends: "الترند في السعودية",
+      occasions: "المناسبات الرسمية", business_leadership: "إدارة الأعمال والقيادة",
     },
   },
 } as const;

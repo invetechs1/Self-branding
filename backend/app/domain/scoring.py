@@ -15,35 +15,55 @@ from datetime import datetime
 from .models import Article, utcnow
 from .text import hits, saturate
 
+# Content pillars — keys MUST match profile/persona.yml -> content_pillars (they are stored in
+# posts.pillar / raw_articles.pillar, foreign keys to pillars.key). Terms are the same
+# Saudi-first keyword table the automation CLI uses (automation/persona.py); the
+# regression test tests/test_pillar_alignment.py fails if the two ever drift apart.
 PILLAR_TERMS = {
-    "ai_technology": ["artificial intelligence", "ai ", " ai", "ai agent", "enterprise ai", "llm",
-                      "machine learning", "automation", "erp", "saas", "copilot", "software",
-                      "data center", "cloud", "ذكاء اصطناعي", "أتمتة", "برمجيات", "نموذج لغوي"],
-    "construction_engineering": ["construction", "contech", "bim", "digital twin", "engineering",
-                                 "contractor", "concrete", "asphalt", "infrastructure", "project management",
-                                 "reality capture", "laser scanning", "drone", "quantity takeoff",
-                                 "إنشاءات", "مقاولات", "هندسة", "خرسانة", "بنية تحتية", "إدارة مشاريع"],
-    "real_estate": ["real estate", "proptech", "housing", "residential", "reit", "mortgage", "land price",
-                    "عقار", "إسكان", "تطوير عقاري", "تمويل عقاري"],
-    "saudi_economy": ["saudi", "vision 2030", "pif", "riyadh", "neom", "public investment fund",
-                      "السعودية", "رؤية 2030", "الرياض", "صندوق الاستثمارات"],
-    "entrepreneurship": ["startup", "founder", "entrepreneur", "bootstrapped", "product-market",
-                         "ريادة أعمال", "مؤسس", "شركة ناشئة"],
-    "investment": ["funding", "raises", "series ", "venture capital", "private equity", "ipo",
-                   "valuation", "acquisition", "استثمار", "تمويل", "استحواذ", "طرح"],
-    "business_management": ["management", "productivity", "business intelligence", "operations",
-                            "workforce", "logistics", "fleet", "supply chain",
-                            "إدارة", "إنتاجية", "تشغيل", "لوجستي", "أسطول"],
-    "leadership_lessons": ["leadership", "culture", "hiring", "lesson", "قيادة", "ثقافة", "توظيف", "درس"],
+    "construction_projects": [
+        "مقاولات", "مقاول", "مشروع إنشائي", "ترسية", "مناقصة", "منافسة", "مستخلص", "أمر تغييري",
+        "مقاول الباطن", "البنية التحتية", "خرسانة", "سفلتة", "تشطيبات", "إدارة المشاريع",
+        "هيئة المقاولين", "المشاريع الحكومية", "تأخر المشروع", "غرامة تأخير", "جدولة",
+        "contractor", "construction", "tender", "infrastructure", "project management", "contech"],
+    "ai_technology": [
+        "ذكاء اصطناعي", "نموذج لغوي", "وكيل ذكي", "أتمتة", "تعلم آلي", "سدايا", "رؤية حاسوبية",
+        "تحول رقمي", "برمجيات", "منصة رقمية", "مركز بيانات", "روبوت", "نظام ذكي",
+        "artificial intelligence", "ai", "ai agent", "llm", "automation", "machine learning", "erp",
+        "saas", "copilot", "computer vision", "data center", "digital twin", "bim"],
+    "government_decisions": [
+        "وزارة الموارد البشرية", "التأمينات الاجتماعية", "وزارة التجارة", "الزكاة والضريبة",
+        "الفاتورة الإلكترونية", "نطاقات", "السعودة", "التوطين", "مكتب العمل", "قوى", "مساند",
+        "نظام العمل", "لائحة", "قرار وزاري", "تعميم", "مجلس الوزراء", "وزارة البلديات",
+        "المحتوى المحلي", "اعتماد", "نظام المنافسات", "إلزام", "اشتراط", "اعتباراً من",
+        "regulation", "ministerial", "mandate", "compliance"],
+    "site_quality": [
+        "عامل بناء", "العمالة", "سلامة الموقع", "إصابات العمل", "السلامة المهنية", "أخطاء التنفيذ",
+        "عيوب البناء", "تشققات", "العزل", "كود البناء", "جودة التنفيذ", "الإشراف الهندسي",
+        "مخالفات البناء", "رخصة بناء", "الأمانة", "بلدي", "سقالات", "شهادة إشغال", "انهيار",
+        "building defect", "site safety", "worker safety", "building code", "inspection"],
+    "saudi_economy": [
+        "الاقتصاد السعودي", "رؤية 2030", "صندوق الاستثمارات", "الرياض", "نيوم", "المشاريع الكبرى",
+        "الناتج المحلي", "القطاع الخاص", "الاستثمار الأجنبي", "تداول", "طرح عام", "نمو",
+        "saudi economy", "vision 2030", "pif", "giga-project", "gdp", "non-oil"],
+    "saudi_trends": [
+        "ترند", "الأكثر تداولاً", "يتصدر", "وسم", "هاشتاق", "الأكثر بحثاً", "جدل", "تفاعل",
+        "حديث السوشيال", "trending", "viral"],
+    "real_estate": [
+        "عقار", "تطوير عقاري", "إسكان", "سكني", "تمويل عقاري", "أسعار الأراضي", "صندوق عقاري",
+        "الطلب على المساكن", "سكني", "ريت", "real estate", "proptech", "housing", "mortgage", "reit"],
+    "occasions": [
+        "اليوم الوطني", "يوم التأسيس", "يوم العلم", "إجازة رسمية", "عيد الفطر", "عيد الأضحى",
+        "رمضان", "موسم الرياض", "اليوم العالمي", "الاحتفال", "national day", "founding day"],
+    "business_leadership": [
+        "إدارة", "قيادة", "التوظيف", "الإنتاجية", "ثقافة العمل", "ريادة أعمال", "شركة ناشئة",
+        "تمويل", "استثمار", "استحواذ", "leadership", "management", "startup", "funding", "hiring"],
 }
 
-_PILLAR_ALIAS = {
-    "AI": "ai_technology", "Construction": "construction_engineering", "Business": "business_management",
-    "Real Estate": "real_estate", "Technology": "ai_technology", "Project Management": "construction_engineering",
-    "Saudi Arabia": "saudi_economy", "Entrepreneurship": "entrepreneurship", "ERP": "ai_technology",
-    "AI Agents": "ai_technology", "Business Automation": "ai_technology",
-    "Traditional Industries": "construction_engineering",
-}
+_PILLAR_ALIAS = {"AI": "ai_technology", "Construction": "construction_projects", "Business": "business_leadership",
+        "Real Estate": "real_estate", "Technology": "ai_technology", "Project Management": "construction_projects",
+        "Saudi Arabia": "saudi_economy", "Entrepreneurship": "business_leadership", "ERP": "ai_technology",
+        "AI Agents": "ai_technology", "Business Automation": "ai_technology",
+        "Traditional Industries": "construction_projects"}
 
 
 def _interest_hits(text: str, terms, persona: dict) -> list:
@@ -109,9 +129,10 @@ def credibility_score(article: Article, persona: dict) -> float:
 
 
 def pillars_ranked(article: Article) -> list:
-    ranked = sorted(((len(hits(article.text, terms)), p) for p, terms in PILLAR_TERMS.items()),
+    # ties break by declaration order (the persona's priority order), not alphabetically
+    ranked = sorted(((len(hits(article.text, terms)), -i, p) for i, (p, terms) in enumerate(PILLAR_TERMS.items())),
                     reverse=True)
-    return [p for n, p in ranked if n] or ["ai_technology"]
+    return [p for n, _, p in ranked if n] or ["ai_technology"]
 
 
 def pillar_of(article: Article, persona: dict) -> str:
