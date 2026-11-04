@@ -34,7 +34,7 @@ def test_irrelevant_story_stays_below_pipeline_threshold(persona):
 def test_pillars_include_construction_and_ai(persona):
     now = utcnow()
     article = score_article(_relevant_article(now), persona, now)
-    assert {"construction_engineering", "ai_technology"} <= set(article.meta["pillars"])
+    assert {"construction_projects", "ai_technology"} <= set(article.meta["pillars"])
 
 
 def test_region_detected_as_saudi_arabia(persona):

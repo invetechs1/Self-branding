@@ -69,7 +69,9 @@ def generate_draft_for_cluster(session: Session, cluster_id: uuid.UUID, platform
                                    fact_confidence=float(cluster_row.fact_confidence or 0.0))
 
     knowledge_snippets = [f"{k.title}: {k.body}" for k in persona_repo.list_public_knowledge()]
-    pillar = primary_row.pillar or "ai_technology"
+    # posts.pillar is a foreign key: fall back to ai_technology, then to no pillar, rather than
+    # failing the draft if the article carries a pillar that is not (yet) in the pillars table.
+    pillar = persona_repo.resolve_pillar(primary_row.pillar) or persona_repo.resolve_pillar("ai_technology")
 
     verify_out = run_verify_agent(cluster_result, persona, language=language, call_fn=verify_call_fn)
     angle_out = run_angle_agent(cluster_result, persona, verify_out.agreed_facts, pillar=pillar,

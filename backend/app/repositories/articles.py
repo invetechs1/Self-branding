@@ -14,7 +14,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from app.domain.models import Article
-from app.db.models import RawArticle
+from app.db.models import Pillar, RawArticle
 
 
 class RawArticleRepository:
@@ -27,13 +27,18 @@ class RawArticleRepository:
         rows = self.session.scalars(select(RawArticle.url).where(RawArticle.url.in_(urls)))
         return set(rows)
 
+    def _known_pillar(self, key: str | None) -> str | None:
+        """raw_articles.pillar is a foreign key — an unseeded/unknown pillar must store NULL,
+        not abort the whole discovery run."""
+        return key if key and self.session.get(Pillar, key) is not None else None
+
     def save_scored(self, article: Article, *, source_id: int | None) -> RawArticle:
         """Persists an already-scored Article (from domain.scoring.score_article)."""
         row = RawArticle(
             source_id=source_id, url=article.url, title=article.title, summary=article.summary,
             language=article.language, published_at=article.published,
             scores=article.scores, relevance=article.scores.get("total"),
-            pillar=article.meta.get("pillar"), region=article.meta.get("region"),
+            pillar=self._known_pillar(article.meta.get("pillar")), region=article.meta.get("region"),
             entities={"domains": article.meta.get("domains", []),
                      "interest_hits": article.meta.get("interest_hits", [])},
             status="scored",

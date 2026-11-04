@@ -25,8 +25,25 @@ class PersonaRepository:
             set_={"label_ar": label_ar, "label_en": label_en, "target_share": target_share})
         self.session.execute(stmt)
 
-    def list_pillars(self) -> list[Pillar]:
-        return list(self.session.scalars(select(Pillar)))
+    def list_pillars(self, *, include_legacy: bool = False) -> list[Pillar]:
+        """Pillars currently in use. When an active persona config defines
+        ``content_pillars``, pillar rows it no longer defines are *legacy*: they stay in the
+        database untouched (posts/articles may still reference them, and the foreign keys
+        are ON DELETE SET NULL/CASCADE, so they must never be deleted) but are hidden from
+        settings, the pillar mix, the 100% total and learning weights.
+        ``include_legacy=True`` returns every row."""
+        rows = list(self.session.scalars(select(Pillar)))
+        if include_legacy:
+            return rows
+        config = self.get_active_persona_config()
+        active_keys = set((config.config or {}).get("content_pillars") or {}) if config else set()
+        return [p for p in rows if p.key in active_keys] if active_keys else rows
+
+    def resolve_pillar(self, key: str | None) -> str | None:
+        """``key`` if a pillar row with that key exists, else None. posts/raw_articles/trends
+        store the pillar as a foreign key, so an unknown key (e.g. new code running before the
+        persona is re-seeded) must degrade to "no pillar" instead of failing the whole write."""
+        return key if key and self.session.get(Pillar, key) is not None else None
 
     def get_pillar(self, key: str) -> Pillar | None:
         return self.session.get(Pillar, key)
