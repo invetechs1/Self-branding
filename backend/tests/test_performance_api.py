@@ -96,9 +96,9 @@ def test_recompute_updates_pillar_multipliers_from_real_signals(client, db_sessi
         MetricsRepository(db_session).record(post.id, impressions=1000, likes=200, comments=50,
                                              shares=30, saves=10, profile_visits=5, followers_gained=5)
         db_session.add(ApprovalDecision(post_id=post.id, decision="approved", decided_by="yahya"))
-    # 3 posts in investment, all rejected, no engagement
+    # 3 posts in construction_projects, all rejected, no engagement
     for i in range(3):
-        post = Post(platform="linkedin_post", language="en", pillar="investment",
+        post = Post(platform="linkedin_post", language="en", pillar="construction_projects",
                    content_type="news_insight", hook=f"i{i}", body="b", approval_level="green",
                    status="rejected")
         db_session.add(post)
@@ -109,7 +109,7 @@ def test_recompute_updates_pillar_multipliers_from_real_signals(client, db_sessi
     resp = client.post("/performance/recompute", headers=HEADERS)
     assert resp.status_code == 200
     weights = resp.json()["weights"]
-    assert weights["ai_technology"] > weights["investment"]
+    assert weights["ai_technology"] > weights["construction_projects"]
 
     pillars_after = client.get("/settings/pillars", headers=HEADERS).json()
     ai = next(p for p in pillars_after if p["key"] == "ai_technology")

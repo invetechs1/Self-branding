@@ -5,6 +5,9 @@
 > جداول قاعدة البيانات، وكلاء الذكاء الاصطناعي، مصادر الأخبار، خوارزمية الترتيب، سير الاعتماد،
 > لوحة التحكم، المجدول، تكامل LinkedIn/X/Instagram، ومحرك التعلّم من قبول يحيى ورفضه.
 >
+> **قبل هذا المستند:** [`docs/project-brief-EN.md`](project-brief-EN.md) يشرح للمطوّر *لماذا* نبني
+> هذا النظام وما معيار نجاحه — اقرأه أولاً، فهو يفسّر القرارات التقنية هنا.
+>
 > **النموذج المرجعي العامل موجود في هذا المستودع** (`automation/`) — يمكن تشغيله اليوم كنسخة CLI،
 > ويصلح كمواصفة تنفيذية للنسخة السحابية متعددة المستخدمين.
 
@@ -88,7 +91,7 @@ CREATE TABLE interests (
 );
 
 CREATE TABLE pillars (
-  key             TEXT PRIMARY KEY,        -- ai_technology, construction_engineering, ...
+  key             TEXT PRIMARY KEY,        -- construction_projects, ai_technology, government_decisions, site_quality, ...
   label_ar        TEXT NOT NULL,
   label_en        TEXT NOT NULL,
   target_share    NUMERIC(4,3) NOT NULL,   -- §26 المزيج المستهدف
@@ -362,7 +365,14 @@ pending_review ──(يحيى: اعتماد)──► scheduled
 - الصور يجب أن تكون على رابط عام (S3/CDN) — ولّدها من نص الشرائح عبر قالب تصميم موحّد.
 
 ### 8.4 TikTok
-- Content Posting API — يتطلب مراجعة تطبيق. حتى ذلك: النظام يخرج السكربت وتُصوَّر يدوياً.
+- Content Posting API v2 — منفّذ بالكامل في `automation/tiktok.py`.
+- المصادقة: OAuth2 (`tiktok_auth.py`) — رمز وصول ٢٤ ساعة يُجدَّد من refresh token سنوي.
+- النشر من ثلاث خطوات: `init` (inbox أو direct) → رفع البايتات بـ PUT مع `Content-Range` → `status/fetch`.
+- الرفع المجزّأ: جزء واحد حتى ٦٤ ميغابايت، وما فوقها أجزاء والأخير يحمل الباقي.
+- `inbox` لا يحتاج تدقيق التطبيق ويضع الفيديو في مسودات المستخدم؛ `direct` يحتاج تدقيقاً
+  وقبله الخصوصية `SELF_ONLY` فقط.
+- **قيد يجب أخذه في الحسبان عند تصميم اللوحة:** تيك توك وانستقرام ينشران وسائط لا نصاً، فالطابور
+  يحمل عمودي `media_path` و`caption`، ولا يُنشر صف بلا ملف.
 
 ### 8.5 بديل موحّد
 Buffer / Typefully / Metricool API — يستبدل طبقة النشر كاملة بنقطة تكامل واحدة.

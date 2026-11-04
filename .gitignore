@@ -28,3 +28,8 @@ build/
 Thumbs.db
 .vscode/
 .idea/
+
+# مخرجات أدوات المقاطع (تُولَّد بالتشغيل)
+docs/videos/tools/*.html
+docs/videos/tools/*.png
+docs/videos/**/_raw/

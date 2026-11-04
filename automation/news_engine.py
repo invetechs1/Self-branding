@@ -25,8 +25,9 @@ from pathlib import Path
 
 import yaml
 
-from persona import (Story, cluster_stories, detect_opportunities, detect_trends,
-                     load_learning, load_persona, score_story)
+from persona import (Story, _hits, cluster_stories, detect_opportunities, detect_trends,
+                     load_learning, load_persona, rel, score_story)
+import calendar_sa
 
 ROOT = Path(__file__).resolve().parent.parent
 SOURCES = ROOT / "automation" / "sources.yml"
@@ -71,10 +72,18 @@ def fetch_feeds(limit_per_feed: int = 25) -> list:
                 source=feed["name"],
                 source_type=feed.get("type", "unknown_website"),
                 published=_parse_date(entry),
-                meta={"feed_region": feed.get("region", "global")},
+                lang=feed.get("lang", "en"),
+                meta={"feed_region": feed.get("region", "global"),
+                      "kind": feed.get("kind", "news")},
             ))
         print(f"  {feed['name']}: {min(len(parsed.entries), limit_per_feed)} خبراً")
     return stories
+
+
+def persona_passes(story, persona) -> bool:
+    """مرشّح الأنشطة الستة عند تفعيل require_activity_match في persona.yml."""
+    from persona import passes_activity_filter
+    return passes_activity_filter(story, persona)
 
 
 def _feed_error(parsed) -> str:
@@ -85,6 +94,27 @@ def _feed_error(parsed) -> str:
     if getattr(parsed, "bozo", False):
         return str(getattr(parsed, "bozo_exception", ""))[:90]
     return "لا عناصر في التغذية"
+
+
+def trend_radar(stories: list, persona: dict, limit: int = 8) -> list:
+    """عناصر الترند التي تتقاطع مع أنشطتك — الباقي ضجيج لا يُعرض.
+
+    الترند مؤشر بحث لا خبر: لا يُنشر كما هو، بل يُقترح كزاوية إن لمس أحد أعمدتك.
+    """
+    terms = []
+    for key, spec in (persona.get("saudi_activities") or {}).items():
+        if key == "saudi_trends":      # كلمات «ترند/يتصدر» تصف الشكل لا الموضوع
+            continue
+        terms += [(k, spec.get("label_ar", key)) for k in spec.get("keywords", [])]
+    out = []
+    for s in stories:
+        if s.meta.get("kind") != "trend":
+            continue
+        matched = {label for term, label in terms if _hits(s.text, [term])}
+        out.append({"title": s.title, "url": s.url, "matched": sorted(matched),
+                    "relevant": bool(matched)})
+    out.sort(key=lambda t: (not t["relevant"], t["title"]))
+    return out[:limit]
 
 
 def load_stored() -> list:
@@ -118,13 +148,20 @@ def discover(args) -> None:
     new = [s for s in fresh if s.url and s.url not in seen and s.title]
     print(f"\nوصل {len(fresh)} خبراً، منها {len(new)} جديد.")
 
+    trends_raw = [s for s in new if s.meta.get("kind") == "trend"]
+    news = [s for s in new if s.meta.get("kind") != "trend"]
+
     kept = []
-    for story in new:
+    for story in news:
         score_story(story, persona, now, learning)
-        if story.scores["total"] >= threshold:
+        if story.scores["total"] >= threshold and persona_passes(story, persona):
             story.meta["opportunities"] = detect_opportunities(story)
             kept.append(story)
     print(f"تجاوز عتبة الملاءمة ({threshold}): {len(kept)} قصة.")
+
+    saudi = [s for s in kept if s.meta.get("region") == "saudi_arabia"]
+    print(f"منها سعودية: {len(saudi)} · بأنشطتك الستة: "
+          f"{sum(1 for s in kept if s.meta.get('activity_keys'))}")
 
     allstories = prune(stored + kept, persona, now)
     save_stories(allstories)
@@ -138,7 +175,20 @@ def discover(args) -> None:
               f" · ثقة الحقائق: {c['fact_confidence']}"
               + (f" · فرص: {', '.join(o['label'] for o in p.meta.get('opportunities', []))}"
                  if p.meta.get("opportunities") else ""))
-    print(f"\nالسجل: {NEWS_FILE.relative_to(ROOT)} ({len(allstories)} قصة)")
+    radar = trend_radar(trends_raw, persona)
+    if radar:
+        print("\nرادار الترند السعودي:")
+        for t in radar:
+            mark = "◆" if t["relevant"] else "·"
+            tail = f"  ← يلامس: {'، '.join(t['matched'])}" if t["relevant"] else "  (خارج أنشطتك)"
+            print(f"  {mark} {t['title'][:60]}{tail}")
+
+    due = calendar_sa.due_now()
+    if due:
+        print("\nمناسبات حان وقت الكتابة عنها:")
+        print("\n".join(calendar_sa.as_lines(due)))
+
+    print(f"\nالسجل: {rel(NEWS_FILE)} ({len(allstories)} قصة)")
     print("الخطوة التالية: python automation/generate_posts.py --from-news")
 
 
@@ -196,11 +246,20 @@ def weekly_report(args) -> None:
 ## 5. التقنية
 {bullets(by_pillar('ai_technology'), 3)}
 
-## 6. الإنشاءات والهندسة
-{bullets(by_pillar('construction_engineering'), 3)}
+## 6. المقاولات والمشاريع
+{bullets(by_pillar('construction_projects'), 3)}
 
 ## 7. الفرصة السعودية
 {bullets(saudi, 3)}
+
+## 7أ. القرارات الحكومية والأنظمة
+{bullets(by_pillar('government_decisions'), 3)}
+
+## 7ب. عامل البناء وأخطاء البناء
+{bullets(by_pillar('site_quality'), 3)}
+
+## 7ج. المناسبات القادمة
+{chr(10).join(calendar_sa.as_lines(calendar_sa.upcoming(45))) or "- لا مناسبات خلال 45 يوماً"}
 
 ## 8. الموضوع المقترح للتعمّق
 {(lambda c: f"**{c['primary'].title}** — درجة {c['primary'].scores['total']:.0f}، "
@@ -210,7 +269,7 @@ def weekly_report(args) -> None:
 ---
 *وُلّد آلياً بواسطة `automation/news_engine.py --report`. راجع قبل الاعتماد.*
 """, encoding="utf-8")
-    print(f"التقرير: {path.relative_to(ROOT)}")
+    print(f"التقرير: {rel(path)}")
 
 
 def check_sources(args) -> None:

@@ -31,20 +31,28 @@ jobs:
       - name: Self-test scoring logic
         run: python automation/persona.py --self-test
 
+      - name: Watch Saudi government decisions
+        run: python automation/gov_watch.py --fetch || echo "تعذّر الوصول إلى بعض الجهات"
+
       - name: Discover and score news
         run: python automation/news_engine.py --discover
+
+      - name: Reply radar (suggestions only — never posts)
+        run: python automation/reply_radar.py || echo "تعذّر بناء رادار الردود"
 
       - name: Weekly intelligence report + learning
         if: github.event.schedule == '0 5 * * 6' || inputs.report
         run: |
           python automation/news_engine.py --report
+          python automation/fetch_metrics.py || echo "تعذّر سحب المقاييس — تُستخدم البيانات الموجودة"
           python automation/feedback.py --learn || echo "لا بيانات أداء كافية بعد"
 
       - name: Commit intelligence outputs
         run: |
           git config user.name "brand-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add automation/queue/news.jsonl analytics/intelligence/ \
+          git add automation/queue/news.jsonl analytics/intelligence/ analytics/performance.csv \
+                  analytics/reply-radar.md analytics/attribution-report.md \
                   analytics/learning-report.md automation/learning/weights.yml || true
           git diff --cached --quiet || git commit -m "chore: تحديث مخرجات محرك الاستخبارات"
           git push
