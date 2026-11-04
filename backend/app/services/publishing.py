@@ -103,6 +103,20 @@ def post_to_linkedin(content: str, *, call_fn: Callable[[str], str] | None = Non
 
 # ── retry policy: transient failures only, capped, no silent duplication ──
 
+_PERMANENT_HTTP_MESSAGES = {
+    401: "credentials were rejected (expired or invalid token) — reconnect the account",
+    402: "the API account has no credit left — add credit/upgrade the plan with the platform, then retry",
+    403: "the platform refused the post (duplicate content, or the app lacks write permission)",
+}
+
+
+def _http_status(e: Exception) -> int | None:
+    """Status code of an HTTP error raised by tweepy or requests, if any."""
+    resp = getattr(e, "response", None)
+    code = getattr(resp, "status_code", None)
+    return code if isinstance(code, int) else None
+
+
 def _with_retries(fn: Callable[[], str], *, max_attempts: int = 3,
                   sleep_fn: Callable[[float], None] | None = None) -> str:
     sleep_fn = sleep_fn or time.sleep
@@ -113,6 +127,10 @@ def _with_retries(fn: Callable[[], str], *, max_attempts: int = 3,
         except PublishError:
             raise   # permanent failure (e.g. "not configured") — retrying can't help, fail fast
         except Exception as e:  # noqa: BLE001 — transient failures count against the retry budget
+            status = _http_status(e)
+            if status in _PERMANENT_HTTP_MESSAGES:
+                # 401/402/403 never fix themselves within seconds — fail fast with the real reason
+                raise PublishError(f"{status}: {_PERMANENT_HTTP_MESSAGES[status]}") from e
             last_error = e
             if attempt < max_attempts - 1:
                 sleep_fn(2 ** attempt)
@@ -138,8 +156,12 @@ def publish_draft(session: Session, post_id: uuid.UUID, *,
 
     if post.status == "posted":
         return post  # idempotent no-op — the guarantee that actually matters
-    if post.status != "approved":
+    # 'failed' is retryable — the Drafts screen offers a "retry" button for it.
+    if post.status not in ("approved", "failed"):
         raise ValueError(f"post must be 'approved' before publishing (currently '{post.status}')")
+    # drop the previous attempt's failure note so retries don't pile them up
+    if post.review_notes and " | publish failed:" in post.review_notes:
+        post.review_notes = post.review_notes.split(" | publish failed:")[0]
 
     if post.platform in MANUAL_PLATFORMS:
         post.status = "scheduled"

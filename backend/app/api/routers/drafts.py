@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.api.auth import require_api_key
+from app.agents.llm import AgentOutputError, LLMUnavailableError
 from app.api.schemas import SourceOut, source_lookup
 from app.db.base import get_session
 from app.repositories.clusters import StoryClusterRepository
@@ -128,12 +129,26 @@ def get_draft(draft_id: uuid.UUID, session: Session = Depends(get_session)) -> D
     return _to_out(post, session)
 
 
+def _generation_http_error(e: Exception) -> HTTPException:
+    """Maps pipeline failures to a clear, user-facing HTTP error instead of a
+    bare 500: LLM-provider problems (billing, key, rate limit) -> 503, an agent
+    returning unusable output -> 502, bad input -> 400."""
+    if isinstance(e, LLMUnavailableError):
+        return HTTPException(status_code=503, detail=str(e))
+    if isinstance(e, AgentOutputError):
+        return HTTPException(status_code=502, detail="The AI returned an unusable response — please try again.")
+    if isinstance(e, ValueError):
+        return HTTPException(status_code=400, detail=str(e))
+    return HTTPException(status_code=503, detail=str(e))
+
+
 @router.post("/generate", response_model=DraftOut)
 def generate(body: GenerateRequest, session: Session = Depends(get_session)) -> DraftOut:
     try:
         post = generate_draft_for_cluster(session, body.cluster_id, body.platform, language=body.language)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except (ValueError, LLMUnavailableError, AgentOutputError, RuntimeError) as e:
+        session.rollback()
+        raise _generation_http_error(e)
     session.commit()
     return _to_out(post, session)
 
@@ -175,8 +190,9 @@ def regenerate(draft_id: uuid.UUID, body: RegenerateRequest,
                session: Session = Depends(get_session)) -> DraftOut:
     try:
         post = regenerate_draft(session, draft_id, mode=body.mode)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except (ValueError, LLMUnavailableError, AgentOutputError, RuntimeError) as e:
+        session.rollback()
+        raise _generation_http_error(e)
     session.commit()
     return _to_out(post, session)
 
@@ -190,6 +206,10 @@ def publish(draft_id: uuid.UUID, session: Session = Depends(get_session)) -> Dra
     try:
         post = publish_draft(session, draft_id)
     except ValueError as e:
+        session.rollback()
         raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:  # noqa: BLE001 — never leak a bare 500 from a platform call
+        session.rollback()
+        raise HTTPException(status_code=502, detail=f"Publishing failed unexpectedly: {e}")
     session.commit()
     return _to_out(post, session)

@@ -125,3 +125,44 @@ def test_publish_unknown_post_raises(db_session):
     import uuid
     with pytest.raises(ValueError, match="unknown post"):
         publish_draft(db_session, uuid.uuid4(), call_fn=lambda content: "x")
+
+
+def test_failed_post_can_be_retried_and_succeeds(db_session):
+    post = _make_post(db_session, platform="linkedin_post")
+    publish_draft(db_session, post.id, call_fn=lambda c: (_ for _ in ()).throw(ConnectionError("down")),
+                  sleep_fn=lambda s: None)
+    assert post.status == "failed"
+
+    result = publish_draft(db_session, post.id, call_fn=lambda c: "urn:li:share:retried")
+    assert result.status == "posted"
+    assert result.external_id == "urn:li:share:retried"
+    assert "publish failed" not in (result.review_notes or "")
+
+
+def test_permanent_http_error_fails_fast_without_retries(db_session):
+    """402/401/403 can't fix themselves in seconds — one attempt, clear reason."""
+    post = _make_post(db_session, platform="x")
+    attempts = {"n": 0}
+
+    class FakeResponse:
+        status_code = 402
+
+    class PaymentRequired(Exception):
+        response = FakeResponse()
+
+    def no_credit(content):
+        attempts["n"] += 1
+        raise PaymentRequired("402 Payment Required")
+
+    result = publish_draft(db_session, post.id, call_fn=no_credit, sleep_fn=lambda s: None)
+    assert result.status == "failed"
+    assert attempts["n"] == 1
+    assert "no credit left" in result.review_notes
+
+
+def test_repeated_failures_do_not_pile_up_notes(db_session):
+    post = _make_post(db_session, platform="linkedin_post")
+    boom = lambda c: (_ for _ in ()).throw(ConnectionError("down"))  # noqa: E731
+    publish_draft(db_session, post.id, call_fn=boom, sleep_fn=lambda s: None)
+    publish_draft(db_session, post.id, call_fn=boom, sleep_fn=lambda s: None)
+    assert post.review_notes.count(" | publish failed:") == 1

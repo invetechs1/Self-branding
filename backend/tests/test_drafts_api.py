@@ -117,3 +117,33 @@ def test_get_unknown_draft_returns_404(client):
     import uuid
     resp = client.get(f"/drafts/{uuid.uuid4()}", headers=HEADERS)
     assert resp.status_code == 404
+
+
+def test_generate_returns_503_with_clear_message_when_llm_account_has_no_credit(client, db_session, monkeypatch):
+    """Billing/key problems at the LLM provider must not surface as a bare 500."""
+    import uuid
+    from app.agents.llm import LLMUnavailableError
+    from app.api.routers import drafts as drafts_router
+
+    def no_credit(*a, **k):
+        raise LLMUnavailableError("The Anthropic account is out of credit — add credit.", reason="billing")
+
+    monkeypatch.setattr(drafts_router, "generate_draft_for_cluster", no_credit)
+    resp = client.post("/drafts/generate", headers=HEADERS,
+                       json={"cluster_id": str(uuid.uuid4()), "platform": "x"})
+    assert resp.status_code == 503
+    assert "out of credit" in resp.json()["detail"]
+
+
+def test_generate_returns_502_when_agent_output_is_unusable(client, monkeypatch):
+    import uuid
+    from app.agents.llm import AgentOutputError
+    from app.api.routers import drafts as drafts_router
+
+    def bad_output(*a, **k):
+        raise AgentOutputError("agent output failed validation after 2 attempts")
+
+    monkeypatch.setattr(drafts_router, "generate_draft_for_cluster", bad_output)
+    resp = client.post("/drafts/generate", headers=HEADERS,
+                       json={"cluster_id": str(uuid.uuid4()), "platform": "x"})
+    assert resp.status_code == 502

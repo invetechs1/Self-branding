@@ -9,7 +9,16 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
   if (!resp.ok) {
     const body = await resp.text().catch(() => "");
-    throw new Error(`${resp.status} ${resp.statusText}: ${body}`);
+    // FastAPI errors are {"detail": "..."} — surface just the human message.
+    let message = body;
+    try {
+      const parsed = JSON.parse(body);
+      if (typeof parsed?.detail === "string") message = parsed.detail;
+      else if (Array.isArray(parsed?.detail)) message = parsed.detail.map((d: any) => d?.msg).filter(Boolean).join("; ");
+    } catch { /* not JSON — keep raw body */ }
+    const err = new Error(message || `${resp.status} ${resp.statusText}`);
+    err.toString = () => err.message; // pages render String(e) — avoid an "Error: " prefix
+    throw err;
   }
   return resp.json() as Promise<T>;
 }

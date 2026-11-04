@@ -20,7 +20,12 @@ async function forward(req: NextRequest, path: string[]) {
     init.body = await req.text();
   }
 
-  const resp = await fetch(url, init);
+  let resp: Response;
+  try {
+    resp = await fetch(url, init);
+  } catch {
+    return NextResponse.json({ detail: "The backend is unreachable — please try again in a moment." }, { status: 502 });
+  }
   const text = await resp.text();
   return new NextResponse(text, {
     status: resp.status,

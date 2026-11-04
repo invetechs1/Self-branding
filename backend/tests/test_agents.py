@@ -92,3 +92,18 @@ def test_call_json_extracts_json_even_with_surrounding_prose():
     call_fn = _fake_call('Here is the result:\n{"angle": "AI opportunity", "why_it_matters": "Because X."}\nHope that helps!')
     out = call_json(model="test", system="s", user="u", output_cls=AngleOutput, call_fn=call_fn)
     assert out.angle == "AI opportunity"
+
+
+def test_anthropic_billing_error_is_translated_to_llm_unavailable():
+    import anthropic
+    import httpx
+    from app.agents.llm import LLMUnavailableError, _translate_anthropic_error
+
+    req = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
+    resp = httpx.Response(400, request=req)
+    err = anthropic.BadRequestError(
+        "Your credit balance is too low to access the Anthropic API.", response=resp,
+        body={"type": "error", "error": {"type": "invalid_request_error", "message": "credit balance is too low"}})
+    out = _translate_anthropic_error(err)
+    assert isinstance(out, LLMUnavailableError)
+    assert out.reason == "billing"
